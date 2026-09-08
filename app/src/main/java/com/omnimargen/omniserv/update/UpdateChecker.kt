@@ -19,48 +19,46 @@ class UpdateChecker @Inject constructor(
     }
 
     suspend fun checkForUpdate(): UpdateInfo? {
-        return try {
-            val url = URL(GITHUB_API_URL)
-            val connection = url.openConnection()
-            connection.connectTimeout = 5000
-            connection.readTimeout = 5000
+        // Fallo de red/conexión: propagar la excepción para que la UI
+        // informe de un error de verificación en vez de ("falsamente") "al día".
+        val url = URL(GITHUB_API_URL)
+        val connection = url.openConnection()
+        connection.connectTimeout = 5000
+        connection.readTimeout = 5000
 
-            val jsonString = connection.getInputStream().bufferedReader().use { it.readText() }
-            val json = JSONObject(jsonString)
+        val jsonString = connection.getInputStream().bufferedReader().use { it.readText() }
+        val json = JSONObject(jsonString)
 
-            val tagName = json.getString("tag_name")
-            val versionName = tagName.removePrefix("v")
-            val body = json.getString("body")
+        val tagName = json.getString("tag_name")
+        val versionName = tagName.removePrefix("v")
+        val body = json.getString("body")
 
-            val assets = json.getJSONArray("assets")
-            var apkUrl: String? = null
-            var apkSize: Long = 0
+        val assets = json.getJSONArray("assets")
+        var apkUrl: String? = null
+        var apkSize: Long = 0
 
-            for (i in 0 until assets.length()) {
-                val asset = assets.getJSONObject(i)
-                val name = asset.getString("name")
-                if (name.endsWith(".apk")) {
-                    apkUrl = asset.getString("browser_download_url")
-                    apkSize = asset.getLong("size")
-                    break
-                }
+        for (i in 0 until assets.length()) {
+            val asset = assets.getJSONObject(i)
+            val name = asset.getString("name")
+            if (name.endsWith(".apk")) {
+                apkUrl = asset.getString("browser_download_url")
+                apkSize = asset.getLong("size")
+                break
             }
+        }
 
-            val currentVersion = getCurrentVersion()
-            val isNewer = compareVersions(versionName, currentVersion) > 0
+        val currentVersion = getCurrentVersion()
+        val isNewer = compareVersions(versionName, currentVersion) > 0
 
-            if (isNewer && apkUrl != null) {
-                UpdateInfo(
-                    versionName = versionName,
-                    tagName = tagName,
-                    releaseNotes = body,
-                    apkUrl = apkUrl,
-                    apkSize = apkSize
-                )
-            } else {
-                null
-            }
-        } catch (e: Exception) {
+        return if (isNewer && apkUrl != null) {
+            UpdateInfo(
+                versionName = versionName,
+                tagName = tagName,
+                releaseNotes = body,
+                apkUrl = apkUrl,
+                apkSize = apkSize
+            )
+        } else {
             null
         }
     }

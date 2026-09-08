@@ -88,23 +88,14 @@ fun HomeScreen(
         }
     }
 
-    // Al terminar un chequeo: cerrar el diálogo si no hay nada nuevo y avisar
-    // al usuario (el botón refrescar nunca debe quedarse "sin hacer nada").
-    var wasChecking by remember { mutableStateOf(false) }
+    // Feedback fiable de un chequeo manual: cada vez que el ViewModel emite un
+    // checkMessage, se muestra como Toast una sola vez y se consume.
     val context = LocalContext.current
-    LaunchedEffect(updateUiState.isChecking) {
-        if (wasChecking && !updateUiState.isChecking) {
-            when {
-                updateUiState.updateAvailable -> Unit // el diálogo se abre con el otro efecto
-                updateUiState.error != null ->
-                    Toast.makeText(context, updateUiState.error, Toast.LENGTH_SHORT).show()
-                else -> {
-                    showUpdateDialog = false
-                    Toast.makeText(context, "Estás en la última versión", Toast.LENGTH_SHORT).show()
-                }
-            }
+    LaunchedEffect(updateUiState.checkMessage) {
+        updateUiState.checkMessage?.let { message ->
+            Toast.makeText(context, message, Toast.LENGTH_SHORT).show()
+            updateViewModel.clearCheckMessage()
         }
-        wasChecking = updateUiState.isChecking
     }
 
     if (showUpdateDialog && updateUiState.updateInfo != null) {
@@ -135,7 +126,7 @@ fun HomeScreen(
                     IconButton(onClick = { onNavigateToLegal() }) {
                         Icon(Icons.Default.Info, contentDescription = "Info Legal")
                     }
-                    IconButton(onClick = { updateViewModel.checkForUpdate() }) {
+                    IconButton(onClick = { updateViewModel.checkForUpdate(notifyResult = true) }) {
                         Icon(Icons.Default.Refresh, contentDescription = "Buscar actualizaciones")
                     }
                 }

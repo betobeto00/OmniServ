@@ -25,7 +25,13 @@ class UpdateViewModel @Inject constructor(
         checkForUpdate()
     }
 
-    fun checkForUpdate() {
+    /**
+     * Verifica si hay una actualización disponible.
+     * @param notifyResult true cuando el chequeo fue iniciado manualmente por el usuario:
+     *   se rellena [UpdateUiState.checkMessage] con el resultado ("estás al día" o el error)
+     *   para que la UI lo muestre de forma fiable. Los chequeos automáticos (init) no avisan.
+     */
+    fun checkForUpdate(notifyResult: Boolean = false) {
         viewModelScope.launch {
             _uiState.update { it.copy(isChecking = true, error = null) }
 
@@ -35,14 +41,20 @@ class UpdateViewModel @Inject constructor(
                     it.copy(
                         isChecking = false,
                         updateAvailable = updateInfo != null,
-                        updateInfo = updateInfo
+                        updateInfo = updateInfo,
+                        checkMessage = if (notifyResult && updateInfo == null) {
+                            "Estás en la última versión"
+                        } else {
+                            null
+                        }
                     )
                 }
             } catch (e: Exception) {
                 _uiState.update {
                     it.copy(
                         isChecking = false,
-                        error = "Error al verificar actualizaciones"
+                        error = "Error al verificar actualizaciones",
+                        checkMessage = if (notifyResult) "Error al verificar actualizaciones" else null
                     )
                 }
             }
@@ -94,5 +106,10 @@ class UpdateViewModel @Inject constructor(
 
     fun clearError() {
         _uiState.update { it.copy(error = null) }
+    }
+
+    /** Consume el mensaje de check manual tras mostrarlo (p. ej. un Toast). */
+    fun clearCheckMessage() {
+        _uiState.update { it.copy(checkMessage = null) }
     }
 }
