@@ -11,6 +11,7 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.filled.Add
 import androidx.compose.material3.Button
 import androidx.compose.material3.Checkbox
 import androidx.compose.material3.DatePicker
@@ -27,8 +28,6 @@ import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
-import androidx.compose.material3.TopAppBar
-import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.material3.rememberDatePickerState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -42,7 +41,7 @@ import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.omnimargen.omniserv.domain.model.Service
 import com.omnimargen.omniserv.domain.model.ServiceOperator
-import com.omnimargen.omniserv.domain.model.ServiceStatus
+import com.omnimargen.omniserv.ui.components.BannerTopBar
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
@@ -52,6 +51,7 @@ import java.util.Locale
 fun ServiceFormScreen(
     serviceId: Long?,
     onNavigateBack: () -> Unit,
+    onNavigateToServiceTypes: () -> Unit = {},
     viewModel: ServiceViewModel = hiltViewModel()
 ) {
     val uiState by viewModel.uiState.collectAsState()
@@ -86,18 +86,13 @@ fun ServiceFormScreen(
 
     Scaffold(
         topBar = {
-            TopAppBar(
-                title = { Text(if (isEditing) "Editar Servicio" else "Nuevo Servicio") },
+            BannerTopBar(
+                title = if (isEditing) "Editar Servicio" else "Nuevo Servicio",
                 navigationIcon = {
                     IconButton(onClick = onNavigateBack) {
                         Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Volver")
                     }
-                },
-                colors = TopAppBarDefaults.topAppBarColors(
-                    containerColor = MaterialTheme.colorScheme.primary,
-                    titleContentColor = MaterialTheme.colorScheme.onPrimary,
-                    navigationIconContentColor = MaterialTheme.colorScheme.onPrimary
-                )
+                }
             )
         }
     ) { padding ->
@@ -140,34 +135,56 @@ fun ServiceFormScreen(
 
             Spacer(modifier = Modifier.height(12.dp))
 
-            ExposedDropdownMenuBox(
-                expanded = expandedType,
-                onExpandedChange = { expandedType = it }
+            Row(
+                modifier = Modifier.fillMaxWidth()
             ) {
-                OutlinedTextField(
-                    value = uiState.serviceTypes.find { it.id == serviceTypeId }?.nombre ?: tipoServicio,
-                    onValueChange = { tipoServicio = it },
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .menuAnchor(MenuAnchorType.PrimaryNotEditable),
-                    label = { Text("Tipo de servicio *") },
-                    readOnly = serviceTypeId != null,
-                    trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expandedType) }
-                )
-                ExposedDropdownMenu(
+                ExposedDropdownMenuBox(
                     expanded = expandedType,
-                    onDismissRequest = { expandedType = false }
+                    onExpandedChange = { expandedType = it },
+                    modifier = Modifier.weight(1f)
                 ) {
-                    uiState.serviceTypes.forEach { type ->
-                        DropdownMenuItem(
-                            text = { Text(type.nombre) },
-                            onClick = {
-                                serviceTypeId = type.id
-                                tipoServicio = type.nombre
-                                expandedType = false
-                            }
-                        )
+                    OutlinedTextField(
+                        value = if (serviceTypeId != null) {
+                            uiState.serviceTypes.find { it.id == serviceTypeId }?.nombre ?: ""
+                        } else {
+                            tipoServicio
+                        },
+                        onValueChange = {
+                            tipoServicio = it
+                            serviceTypeId = null
+                        },
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .menuAnchor(MenuAnchorType.PrimaryNotEditable),
+                        label = { Text("Tipo de servicio *") },
+                        trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expandedType) }
+                    )
+                    ExposedDropdownMenu(
+                        expanded = expandedType,
+                        onDismissRequest = { expandedType = false }
+                    ) {
+                        uiState.serviceTypes.forEach { type ->
+                            DropdownMenuItem(
+                                text = { Text(type.nombre) },
+                                onClick = {
+                                    serviceTypeId = type.id
+                                    tipoServicio = type.nombre
+                                    expandedType = false
+                                }
+                            )
+                        }
                     }
+                }
+
+                IconButton(
+                    onClick = onNavigateToServiceTypes,
+                    modifier = Modifier.padding(top = 8.dp)
+                ) {
+                    Icon(
+                        Icons.Default.Add,
+                        contentDescription = "Gestionar tipos",
+                        tint = MaterialTheme.colorScheme.primary
+                    )
                 }
             }
 
@@ -266,8 +283,12 @@ fun ServiceFormScreen(
             onDismissRequest = { showDatePicker = false },
             confirmButton = {
                 TextButton(onClick = {
-                    datePickerState.selectedDateMillis?.let {
-                        selectedDate = Date(it)
+                    datePickerState.selectedDateMillis?.let { millis ->
+                        val calendar = java.util.Calendar.getInstance()
+                        calendar.timeInMillis = millis
+                        calendar.set(java.util.Calendar.HOUR_OF_DAY, java.util.Calendar.getInstance().get(java.util.Calendar.HOUR_OF_DAY))
+                        calendar.set(java.util.Calendar.MINUTE, java.util.Calendar.getInstance().get(java.util.Calendar.MINUTE))
+                        selectedDate = calendar.time
                     }
                     showDatePicker = false
                 }) {

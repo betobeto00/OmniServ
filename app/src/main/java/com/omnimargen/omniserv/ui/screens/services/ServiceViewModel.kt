@@ -82,4 +82,10 @@ class ServiceViewModel @Inject constructor(
             deleteServiceUseCase(service)
         }
     }
+
+    fun updateServiceStatus(service: Service, newStatus: ServiceStatus) {
+        viewModelScope.launch {
+            updateServiceUseCase(service.copy(estado = newStatus))
+        }
+    }
 }

@@ -90,7 +90,14 @@ fun OmniServNavGraph() {
             modifier = Modifier.padding(padding)
         ) {
             composable(Screen.Home.route) {
-                HomeScreen()
+                HomeScreen(
+                    onNavigateToServiceForm = {
+                        navController.navigate("service_form/-1")
+                    },
+                    onNavigateToLegal = {
+                        navController.navigate("legal")
+                    }
+                )
             }
 
             composable(Screen.Clients.route) {
@@ -130,7 +137,10 @@ fun OmniServNavGraph() {
                 val serviceId = backStackEntry.arguments?.getLong("serviceId")
                 ServiceFormScreen(
                     serviceId = if (serviceId == -1L) null else serviceId,
-                    onNavigateBack = { navController.popBackStack() }
+                    onNavigateBack = { navController.popBackStack() },
+                    onNavigateToServiceTypes = {
+                        navController.navigate("service_types")
+                    }
                 )
             }
 
@@ -168,7 +178,8 @@ fun OmniServNavGraph() {
                 ServiceTypeListScreen(
                     onNavigateToForm = { typeId ->
                         navController.navigate("service_type_form/${typeId ?: -1}")
-                    }
+                    },
+                    onNavigateBack = { navController.popBackStack() }
                 )
             }
 

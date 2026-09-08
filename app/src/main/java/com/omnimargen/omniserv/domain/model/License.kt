@@ -18,4 +18,5 @@ sealed class LicenseStatus {
     object NotActivated : LicenseStatus()
     object InvalidSignature : LicenseStatus()
     data class GracePeriod(val daysRemaining: Int) : LicenseStatus()
+    data class TrialPeriod(val daysRemaining: Int) : LicenseStatus()
 }

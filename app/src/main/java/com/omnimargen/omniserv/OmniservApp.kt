@@ -27,6 +27,11 @@ class OmniservApp : Application(), Configuration.Provider {
         super.onCreate()
         createNotificationChannel()
         scheduleDailyReminder()
+        scheduleLicenseExpirationCheck()
+    }
+
+    private fun scheduleLicenseExpirationCheck() {
+        notificationScheduler.scheduleLicenseExpirationCheck()
     }
 
     private fun createNotificationChannel() {

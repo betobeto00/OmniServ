@@ -25,16 +25,18 @@ import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
-import androidx.compose.material3.TopAppBar
-import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.omnimargen.omniserv.domain.model.Service
 import com.omnimargen.omniserv.domain.model.ServiceStatus
+import com.omnimargen.omniserv.ui.components.BannerTopBar
 import java.text.SimpleDateFormat
 import java.util.Locale
 
@@ -50,13 +52,7 @@ fun ServiceListScreen(
 
     Scaffold(
         topBar = {
-            TopAppBar(
-                title = { Text("Servicios") },
-                colors = TopAppBarDefaults.topAppBarColors(
-                    containerColor = MaterialTheme.colorScheme.primary,
-                    titleContentColor = MaterialTheme.colorScheme.onPrimary
-                )
-            )
+            BannerTopBar(title = "Servicios")
         },
         floatingActionButton = {
             FloatingActionButton(onClick = { onNavigateToForm(null) }) {
@@ -85,7 +81,7 @@ fun ServiceListScreen(
                     FilterChip(
                         selected = uiState.filterStatus == status,
                         onClick = { viewModel.setFilterStatus(status) },
-                        label = { Text(status.name) }
+                        label = { Text(formatStatus(status.name), fontSize = 10.sp) }
                     )
                 }
             }
@@ -131,43 +127,52 @@ fun ServiceCard(
         Column(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(16.dp)
+                .padding(12.dp)
         ) {
             Row(
                 modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
             ) {
                 Column(modifier = Modifier.weight(1f)) {
                     Text(
                         text = service.clienteNombre,
-                        style = MaterialTheme.typography.titleMedium
+                        style = MaterialTheme.typography.bodyLarge,
+                        fontWeight = FontWeight.Medium,
+                        fontSize = 16.sp
                     )
                     Text(
                         text = service.tipoServicio,
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        fontSize = 13.sp
                     )
                 }
                 Text(
                     text = "$${String.format("%.2f", service.monto)}",
-                    style = MaterialTheme.typography.titleMedium,
-                    color = MaterialTheme.colorScheme.primary
+                    style = MaterialTheme.typography.bodyMedium,
+                    fontWeight = FontWeight.Bold,
+                    color = MaterialTheme.colorScheme.primary,
+                    fontSize = 15.sp
                 )
             }
 
-            Spacer(modifier = Modifier.height(8.dp))
+            Spacer(modifier = Modifier.height(6.dp))
 
             Row(
                 modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
             ) {
                 Text(
                     text = dateFormat.format(service.fechaServicio),
-                    style = MaterialTheme.typography.bodySmall
+                    style = MaterialTheme.typography.bodySmall,
+                    fontSize = 12.sp
                 )
                 Text(
-                    text = service.estado.name,
+                    text = formatStatus(service.estado.name),
                     style = MaterialTheme.typography.labelSmall,
+                    fontSize = 11.sp,
                     color = when (service.estado) {
                         ServiceStatus.PENDIENTE -> MaterialTheme.colorScheme.secondary
                         ServiceStatus.EN_PROGRESO -> MaterialTheme.colorScheme.tertiary
@@ -180,9 +185,10 @@ fun ServiceCard(
             if (service.operarios.isNotEmpty()) {
                 Spacer(modifier = Modifier.height(4.dp))
                 Text(
-                    text = "Operarios: ${service.operarios.joinToString { it.operatorNombre }}",
+                    text = "Ops: ${service.operarios.joinToString { it.operatorNombre }}",
                     style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    fontSize = 12.sp
                 )
             }
 
@@ -191,19 +197,30 @@ fun ServiceCard(
                 horizontalArrangement = Arrangement.End
             ) {
                 IconButton(onClick = onDetail) {
-                    Icon(Icons.Default.Info, contentDescription = "Detalle")
+                    Icon(Icons.Default.Info, contentDescription = "Detalle", modifier = Modifier.height(18.dp))
                 }
                 IconButton(onClick = onEdit) {
-                    Icon(Icons.Default.Edit, contentDescription = "Editar")
+                    Icon(Icons.Default.Edit, contentDescription = "Editar", modifier = Modifier.height(18.dp))
                 }
                 IconButton(onClick = onDelete) {
                     Icon(
                         Icons.Default.Delete,
                         contentDescription = "Eliminar",
-                        tint = MaterialTheme.colorScheme.error
+                        tint = MaterialTheme.colorScheme.error,
+                        modifier = Modifier.height(18.dp)
                     )
                 }
             }
         }
+    }
+}
+
+fun formatStatus(status: String): String {
+    return when (status) {
+        "PENDIENTE" -> "Pendiente"
+        "EN_PROGRESO" -> "En Progreso"
+        "REALIZADO" -> "Realizado"
+        "CANCELADO" -> "Cancelado"
+        else -> status
     }
 }

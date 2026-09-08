@@ -1,5 +1,6 @@
 package com.omnimargen.omniserv.ui.screens.services
 
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -14,13 +15,13 @@ import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.FilterChip
+import androidx.compose.material3.FilterChipDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
-import androidx.compose.material3.TopAppBar
-import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
@@ -28,6 +29,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.omnimargen.omniserv.domain.model.ServiceStatus
+import com.omnimargen.omniserv.ui.components.BannerTopBar
 import java.text.SimpleDateFormat
 import java.util.Locale
 
@@ -44,18 +46,13 @@ fun ServiceDetailScreen(
 
     Scaffold(
         topBar = {
-            TopAppBar(
-                title = { Text("Detalle del Servicio") },
+            BannerTopBar(
+                title = "Detalle del Servicio",
                 navigationIcon = {
                     IconButton(onClick = onNavigateBack) {
                         Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Volver")
                     }
-                },
-                colors = TopAppBarDefaults.topAppBarColors(
-                    containerColor = MaterialTheme.colorScheme.primary,
-                    titleContentColor = MaterialTheme.colorScheme.onPrimary,
-                    navigationIconContentColor = MaterialTheme.colorScheme.onPrimary
-                )
+                }
             )
         }
     ) { padding ->
@@ -87,7 +84,7 @@ fun ServiceDetailScreen(
                     ) {
                         Row(
                             modifier = Modifier.fillMaxWidth(),
-                            horizontalArrangement = androidx.compose.foundation.layout.Arrangement.SpaceBetween
+                            horizontalArrangement = Arrangement.SpaceBetween
                         ) {
                             Text(
                                 text = service.clienteNombre,
@@ -112,17 +109,6 @@ fun ServiceDetailScreen(
                             style = MaterialTheme.typography.bodyLarge
                         )
 
-                        Text(
-                            text = "Estado: ${service.estado.name}",
-                            style = MaterialTheme.typography.bodyLarge,
-                            color = when (service.estado) {
-                                ServiceStatus.PENDIENTE -> MaterialTheme.colorScheme.secondary
-                                ServiceStatus.EN_PROGRESO -> MaterialTheme.colorScheme.tertiary
-                                ServiceStatus.REALIZADO -> MaterialTheme.colorScheme.primary
-                                ServiceStatus.CANCELADO -> MaterialTheme.colorScheme.error
-                            }
-                        )
-
                         if (service.notas.isNotBlank()) {
                             Spacer(modifier = Modifier.height(8.dp))
                             Text(
@@ -134,6 +120,39 @@ fun ServiceDetailScreen(
                                 style = MaterialTheme.typography.bodyMedium
                             )
                         }
+                    }
+                }
+
+                Spacer(modifier = Modifier.height(16.dp))
+
+                // Status change section
+                Text(
+                    text = "Cambiar Estado",
+                    style = MaterialTheme.typography.titleMedium
+                )
+
+                Spacer(modifier = Modifier.height(8.dp))
+
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    ServiceStatus.entries.forEach { status ->
+                        FilterChip(
+                            selected = service.estado == status,
+                            onClick = {
+                                viewModel.updateServiceStatus(service, status)
+                            },
+                            label = { Text(formatStatus(status.name)) },
+                            colors = FilterChipDefaults.filterChipColors(
+                                selectedContainerColor = when (status) {
+                                    ServiceStatus.PENDIENTE -> MaterialTheme.colorScheme.secondaryContainer
+                                    ServiceStatus.EN_PROGRESO -> MaterialTheme.colorScheme.tertiaryContainer
+                                    ServiceStatus.REALIZADO -> MaterialTheme.colorScheme.primaryContainer
+                                    ServiceStatus.CANCELADO -> MaterialTheme.colorScheme.errorContainer
+                                }
+                            )
+                        )
                     }
                 }
 
@@ -158,7 +177,7 @@ fun ServiceDetailScreen(
                                 modifier = Modifier
                                     .fillMaxWidth()
                                     .padding(12.dp),
-                                horizontalArrangement = androidx.compose.foundation.layout.Arrangement.SpaceBetween
+                                horizontalArrangement = Arrangement.SpaceBetween
                             ) {
                                 Text(
                                     text = serviceOperator.operatorNombre,

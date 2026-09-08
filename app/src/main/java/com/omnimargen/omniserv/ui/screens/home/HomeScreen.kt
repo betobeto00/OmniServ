@@ -1,6 +1,9 @@
 package com.omnimargen.omniserv.ui.screens.home
 
+import androidx.compose.foundation.Image
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -8,10 +11,15 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.DateRange
+import androidx.compose.material.icons.filled.Info
 import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
@@ -30,10 +38,20 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
+import com.omnimargen.omniserv.R
 import com.omnimargen.omniserv.domain.model.Service
+import com.omnimargen.omniserv.ui.components.BannerTopBar
 import com.omnimargen.omniserv.update.UpdateDialog
 import com.omnimargen.omniserv.update.UpdateViewModel
 import java.text.SimpleDateFormat
@@ -43,6 +61,7 @@ import java.util.Locale
 @Composable
 fun HomeScreen(
     onNavigateToServiceForm: () -> Unit = {},
+    onNavigateToLegal: () -> Unit = {},
     viewModel: HomeViewModel = hiltViewModel(),
     updateViewModel: UpdateViewModel = hiltViewModel()
 ) {
@@ -57,9 +76,7 @@ fun HomeScreen(
             updateInfo = updateUiState.updateInfo!!,
             isDownloading = updateUiState.isDownloading,
             downloadProgress = updateUiState.downloadProgress,
-            onConfirm = {
-                updateViewModel.startDownload()
-            },
+            onConfirm = { updateViewModel.startDownload() },
             onDismiss = {
                 showUpdateDialog = false
                 updateViewModel.dismissUpdate()
@@ -69,25 +86,23 @@ fun HomeScreen(
 
     Scaffold(
         topBar = {
-            TopAppBar(
-                title = { Text("OmniServ") },
+            BannerTopBar(
+                title = "",
                 actions = {
-                    IconButton(onClick = { updateViewModel.checkForUpdate() }) {
-                        Icon(
-                            Icons.Default.Refresh,
-                            contentDescription = "Buscar actualizaciones"
-                        )
+                    IconButton(onClick = { onNavigateToLegal() }) {
+                        Icon(Icons.Default.Info, contentDescription = "Info Legal")
                     }
-                },
-                colors = TopAppBarDefaults.topAppBarColors(
-                    containerColor = MaterialTheme.colorScheme.primary,
-                    titleContentColor = MaterialTheme.colorScheme.onPrimary,
-                    actionIconContentColor = MaterialTheme.colorScheme.onPrimary
-                )
+                    IconButton(onClick = { updateViewModel.checkForUpdate() }) {
+                        Icon(Icons.Default.Refresh, contentDescription = "Buscar actualizaciones")
+                    }
+                }
             )
         },
         floatingActionButton = {
-            FloatingActionButton(onClick = onNavigateToServiceForm) {
+            FloatingActionButton(
+                onClick = onNavigateToServiceForm,
+                containerColor = MaterialTheme.colorScheme.primary
+            ) {
                 Icon(Icons.Default.Add, contentDescription = "Nuevo servicio")
             }
         }
@@ -97,10 +112,10 @@ fun HomeScreen(
                 .fillMaxSize()
                 .padding(padding)
                 .padding(horizontal = 16.dp),
-            verticalArrangement = Arrangement.spacedBy(16.dp)
+            verticalArrangement = Arrangement.spacedBy(12.dp)
         ) {
             item {
-                Spacer(modifier = Modifier.height(8.dp))
+                Spacer(modifier = Modifier.height(4.dp))
                 SummaryCard(
                     pendingCount = uiState.pendingServices.size,
                     totalPending = uiState.totalPendingAmount
@@ -212,7 +227,7 @@ fun SummaryCard(pendingCount: Int, totalPending: Double) {
                     color = MaterialTheme.colorScheme.onPrimaryContainer
                 )
             }
-            Column(horizontalAlignment = androidx.compose.ui.Alignment.End) {
+            Column(horizontalAlignment = Alignment.End) {
                 Text(
                     text = "Total",
                     style = MaterialTheme.typography.titleSmall,
@@ -233,7 +248,8 @@ fun SectionTitle(title: String) {
     Text(
         text = title,
         style = MaterialTheme.typography.titleMedium,
-        color = MaterialTheme.colorScheme.primary
+        color = MaterialTheme.colorScheme.primary,
+        fontWeight = FontWeight.Bold
     )
 }
 
@@ -247,12 +263,14 @@ fun ServiceQuickCard(service: Service, dateFormat: SimpleDateFormat) {
             modifier = Modifier
                 .fillMaxWidth()
                 .padding(12.dp),
-            horizontalArrangement = Arrangement.SpaceBetween
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically
         ) {
             Column(modifier = Modifier.weight(1f)) {
                 Text(
                     text = service.clienteNombre,
-                    style = MaterialTheme.typography.bodyLarge
+                    style = MaterialTheme.typography.bodyLarge,
+                    fontWeight = FontWeight.Medium
                 )
                 Text(
                     text = service.tipoServicio,
@@ -260,7 +278,7 @@ fun ServiceQuickCard(service: Service, dateFormat: SimpleDateFormat) {
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
             }
-            Column(horizontalAlignment = androidx.compose.ui.Alignment.End) {
+            Column(horizontalAlignment = Alignment.End) {
                 Text(
                     text = dateFormat.format(service.fechaServicio),
                     style = MaterialTheme.typography.bodySmall
@@ -268,7 +286,8 @@ fun ServiceQuickCard(service: Service, dateFormat: SimpleDateFormat) {
                 Text(
                     text = "$${String.format("%.2f", service.monto)}",
                     style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.primary
+                    color = MaterialTheme.colorScheme.primary,
+                    fontWeight = FontWeight.Bold
                 )
             }
         }

@@ -26,6 +26,18 @@ class NotificationScheduler @Inject constructor(
         )
     }
 
+    fun scheduleLicenseExpirationCheck() {
+        val workRequest = PeriodicWorkRequestBuilder<LicenseExpirationWorker>(
+            24, TimeUnit.HOURS
+        ).build()
+
+        WorkManager.getInstance(context).enqueueUniquePeriodicWork(
+            "omniserv_license_expiry_check",
+            ExistingPeriodicWorkPolicy.KEEP,
+            workRequest
+        )
+    }
+
     fun cancelReminder(serviceId: Long) {
         WorkManager.getInstance(context).cancelUniqueWork("reminder_$serviceId")
     }
