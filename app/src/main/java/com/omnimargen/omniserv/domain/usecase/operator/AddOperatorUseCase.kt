@@ -1,0 +1,11 @@
+package com.omnimargen.omniserv.domain.usecase.operator
+
+import com.omnimargen.omniserv.data.repository.OperatorRepository
+import com.omnimargen.omniserv.domain.model.Operator
+import javax.inject.Inject
+
+class AddOperatorUseCase @Inject constructor(
+    private val operatorRepository: OperatorRepository
+) {
+    suspend operator fun invoke(operator: Operator): Long = operatorRepository.insert(operator)
+}
