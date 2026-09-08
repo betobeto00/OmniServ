@@ -18,16 +18,17 @@ class ValidateLicenseUseCase @Inject constructor(
         val license = licenseRepository.getLicense()
 
         if (license == null) {
-            // No license - check trial period
-            val installTime = licenseRepository.getInstallTime()
+            // Sin licencia: período de prueba de 7 días. La fecha de inicio se
+            // persiste (inicio desde el botón "Disfrutar 7 días gratis" o, si no,
+            // desde la instalación) para que el trial sobreviva reinicios de la app.
+            val trialStart = licenseRepository.getTrialStartTime().takeIf { it > 0L }
+                ?: licenseRepository.getInstallTime()
             val now = System.currentTimeMillis()
-            val trialEnd = installTime + TRIAL_MILLIS
+            val trialEnd = trialStart + TRIAL_MILLIS
 
             // Detectar manipulación de fecha: si el dispositivo tiene fecha anterior
             // a la de instalación, algo anda mal
-            if (now < installTime) {
-                // Fecha del dispositivo es anterior a la instalación - posible manipulación
-                // Permitir acceso pero registrar la anomalía
+            if (now < trialStart) {
                 return LicenseStatus.TrialPeriod(TRIAL_DAYS)
             }
 

@@ -3,11 +3,13 @@ package com.omnimargen.omniserv.update
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import dagger.hilt.android.lifecycle.HiltViewModel
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
+import java.io.File
 import javax.inject.Inject
 
 @HiltViewModel
@@ -52,8 +54,30 @@ class UpdateViewModel @Inject constructor(
 
         _uiState.update { it.copy(isDownloading = true, downloadProgress = 0) }
 
-        updateInstaller.downloadAndInstall(updateInfo) { progress ->
-            _uiState.update { it.copy(downloadProgress = progress) }
+        viewModelScope.launch {
+            // DownloadManager escribe el APK en disco; esperar a que exista evita
+            // lanzar el instalador con un archivo a medio escribir.
+            val file = updateInstaller.getTargetFile(updateInfo)
+            while (!file.exists() || file.length() == 0L) {
+                delay(500)
+            }
+            _uiState.update {
+                it.copy(
+                    isDownloading = false,
+                    readyToInstall = true,
+                    downloadProgress = 100
+                )
+            }
+        }
+    }
+
+    /** Lanza el instalador de Android con el APK descargado (idempotente). */
+    fun installDownloadedApk() {
+        val updateInfo = _uiState.value.updateInfo ?: return
+        val file = updateInstaller.getTargetFile(updateInfo)
+        if (file.exists()) {
+            _uiState.update { it.copy(readyToInstall = false) }
+            updateInstaller.installApk(file)
         }
     }
 
@@ -61,7 +85,9 @@ class UpdateViewModel @Inject constructor(
         _uiState.update {
             it.copy(
                 updateAvailable = false,
-                updateInfo = null
+                updateInfo = null,
+                isDownloading = false,
+                readyToInstall = false
             )
         }
     }

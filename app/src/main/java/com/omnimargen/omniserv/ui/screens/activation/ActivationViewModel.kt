@@ -294,7 +294,12 @@ class ActivationViewModel @Inject constructor(
         context.startActivity(intent)
     }
 
+    /**
+     * Activa el período de prueba de 7 días: persiste la fecha de inicio para
+     * que el trial sobreviva al cierre de la app y navega al dashboard.
+     */
     fun skipTrial() {
+        licenseRepository.startTrialPeriod()
         _uiState.update {
             it.copy(
                 currentStep = 3,

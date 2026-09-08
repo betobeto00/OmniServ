@@ -18,9 +18,14 @@ class UpdateInstaller @Inject constructor(
 ) {
     private var downloadId: Long = -1
 
-    fun downloadAndInstall(updateInfo: UpdateInfo, onProgress: (Int) -> Unit = {}) {
+    /** Archivo local donde DownloadManager escribe el APK de la actualización. */
+    fun getTargetFile(updateInfo: UpdateInfo): File {
         val fileName = "OmniServ_${updateInfo.versionName}.apk"
-        val file = File(context.getExternalFilesDir(Environment.DIRECTORY_DOWNLOADS), fileName)
+        return File(context.getExternalFilesDir(Environment.DIRECTORY_DOWNLOADS), fileName)
+    }
+
+    fun downloadAndInstall(updateInfo: UpdateInfo, onProgress: (Int) -> Unit = {}) {
+        val file = getTargetFile(updateInfo)
 
         if (file.exists()) {
             installApk(file)

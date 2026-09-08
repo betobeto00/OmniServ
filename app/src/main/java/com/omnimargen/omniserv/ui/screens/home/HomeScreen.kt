@@ -1,5 +1,6 @@
 package com.omnimargen.omniserv.ui.screens.home
 
+import android.widget.Toast
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
@@ -33,6 +34,7 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -44,6 +46,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
@@ -71,12 +74,52 @@ fun HomeScreen(
 
     var showUpdateDialog by remember { mutableStateOf(false) }
 
+    // Descarga terminada → lanzar el instalador de Android automáticamente
+    LaunchedEffect(updateUiState.readyToInstall) {
+        if (updateUiState.readyToInstall) {
+            updateViewModel.installDownloadedApk()
+        }
+    }
+
+    // Si hay actualización disponible, mostrar el diálogo (una sola vez)
+    LaunchedEffect(updateUiState.updateAvailable) {
+        if (updateUiState.updateAvailable) {
+            showUpdateDialog = true
+        }
+    }
+
+    // Al terminar un chequeo: cerrar el diálogo si no hay nada nuevo y avisar
+    // al usuario (el botón refrescar nunca debe quedarse "sin hacer nada").
+    var wasChecking by remember { mutableStateOf(false) }
+    val context = LocalContext.current
+    LaunchedEffect(updateUiState.isChecking) {
+        if (wasChecking && !updateUiState.isChecking) {
+            when {
+                updateUiState.updateAvailable -> Unit // el diálogo se abre con el otro efecto
+                updateUiState.error != null ->
+                    Toast.makeText(context, updateUiState.error, Toast.LENGTH_SHORT).show()
+                else -> {
+                    showUpdateDialog = false
+                    Toast.makeText(context, "Estás en la última versión", Toast.LENGTH_SHORT).show()
+                }
+            }
+        }
+        wasChecking = updateUiState.isChecking
+    }
+
     if (showUpdateDialog && updateUiState.updateInfo != null) {
         UpdateDialog(
             updateInfo = updateUiState.updateInfo!!,
             isDownloading = updateUiState.isDownloading,
             downloadProgress = updateUiState.downloadProgress,
-            onConfirm = { updateViewModel.startDownload() },
+            readyToInstall = updateUiState.readyToInstall,
+            onConfirm = {
+                when {
+                    updateUiState.readyToInstall -> updateViewModel.installDownloadedApk()
+                    updateUiState.isDownloading -> Unit
+                    else -> updateViewModel.startDownload()
+                }
+            },
             onDismiss = {
                 showUpdateDialog = false
                 updateViewModel.dismissUpdate()

@@ -30,4 +30,22 @@ class LicenseRepository @Inject constructor(
         }
         return installTime
     }
+
+    /**
+     * Inicio del período de prueba de 7 días: se fija la primera vez que el
+     * usuario lo activa (botón "Disfrutar 7 días gratis") y se persiste para
+     * que el trial sobreviva reinicios de la app.
+     */
+    fun startTrialPeriod() {
+        if (prefs.getLong(PREF_TRIAL_START, 0L) == 0L) {
+            prefs.edit().putLong(PREF_TRIAL_START, System.currentTimeMillis()).apply()
+        }
+    }
+
+    /** 0 = el usuario aún no activó el trial (usa la fecha de instalación). */
+    fun getTrialStartTime(): Long = prefs.getLong(PREF_TRIAL_START, 0L)
+
+    private companion object {
+        const val PREF_TRIAL_START = "trial_start_time"
+    }
 }

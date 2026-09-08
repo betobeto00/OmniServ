@@ -21,6 +21,7 @@ fun UpdateDialog(
     updateInfo: UpdateInfo,
     isDownloading: Boolean,
     downloadProgress: Int,
+    readyToInstall: Boolean = false,
     onConfirm: () -> Unit,
     onDismiss: () -> Unit
 ) {
@@ -70,6 +71,14 @@ fun UpdateDialog(
                         text = "Descargando... $downloadProgress%",
                         style = MaterialTheme.typography.bodySmall
                     )
+                } else if (readyToInstall) {
+                    Spacer(modifier = Modifier.height(12.dp))
+
+                    Text(
+                        text = "Descarga completada. Presiona \"Instalar ahora\" para continuar.",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.primary
+                    )
                 }
             }
         },
@@ -83,6 +92,8 @@ fun UpdateDialog(
                         modifier = Modifier.size(16.dp),
                         strokeWidth = 2.dp
                     )
+                } else if (readyToInstall) {
+                    Text("Instalar ahora")
                 } else {
                     Text("Actualizar")
                 }
