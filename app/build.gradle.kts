@@ -14,7 +14,7 @@ android {
         applicationId = "com.omnimargen.omniserv"
         minSdk = 26
         targetSdk = 35
-        versionCode = 7
+        versionCode = 120
         versionName = "1.2.0"
     }
 
@@ -86,3 +86,4 @@ dependencies {
     // Coroutines
     implementation(libs.kotlinx.coroutines.android)
 }
+
