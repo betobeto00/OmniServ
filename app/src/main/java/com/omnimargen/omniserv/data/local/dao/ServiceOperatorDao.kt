@@ -8,6 +8,14 @@ import androidx.room.Query
 import com.omnimargen.omniserv.data.local.entity.ServiceOperatorEntity
 import kotlinx.coroutines.flow.Flow
 
+data class OperatorPaymentSummary(
+    val operatorId: Long,
+    val nombre: String,
+    val totalServicios: Long,
+    val pendiente: Double,
+    val pagado: Double
+)
+
 @Dao
 interface ServiceOperatorDao {
     @Query("SELECT * FROM service_operators WHERE serviceId = :serviceId")
@@ -33,4 +41,18 @@ interface ServiceOperatorDao {
 
     @Query("DELETE FROM service_operators WHERE operatorId = :operatorId")
     suspend fun deleteByOperatorId(operatorId: Long)
+
+    @Query(
+        """
+        SELECT so.operatorId AS operatorId, o.nombre AS nombre,
+               COUNT(*) AS totalServicios,
+               COALESCE(SUM(CASE WHEN so.pagado = 0 THEN so.montoPago ELSE 0 END), 0) AS pendiente,
+               COALESCE(SUM(CASE WHEN so.pagado = 1 THEN so.montoPago ELSE 0 END), 0) AS pagado
+        FROM service_operators so
+        JOIN operators o ON o.id = so.operatorId
+        GROUP BY so.operatorId, o.nombre
+        ORDER BY o.nombre
+        """
+    )
+    fun getPaymentSummary(): Flow<List<OperatorPaymentSummary>>
 }

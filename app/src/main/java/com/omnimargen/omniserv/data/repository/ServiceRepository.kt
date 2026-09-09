@@ -1,6 +1,7 @@
 package com.omnimargen.omniserv.data.repository
 
 import com.omnimargen.omniserv.data.local.dao.OperatorDao
+import com.omnimargen.omniserv.data.local.dao.OperatorPaymentSummary
 import com.omnimargen.omniserv.data.local.dao.ServiceDao
 import com.omnimargen.omniserv.data.local.dao.ServiceOperatorDao
 import com.omnimargen.omniserv.data.mapper.toDomain
@@ -77,6 +78,9 @@ class ServiceRepository @Inject constructor(
         serviceOperatorDao.getByServiceId(serviceId).map { entities ->
             entities.map { it.toDomain() }
         }
+
+    fun getOperatorPaymentSummary(): Flow<List<OperatorPaymentSummary>> =
+        serviceOperatorDao.getPaymentSummary()
 
     suspend fun getOperatorWithNames(serviceId: Long): List<ServiceOperator> {
         val operators = serviceOperatorDao.getByServiceId(serviceId).first()

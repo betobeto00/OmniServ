@@ -31,6 +31,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
+import com.omnimargen.omniserv.data.local.dao.OperatorPaymentSummary
 import com.omnimargen.omniserv.domain.model.Operator
 import com.omnimargen.omniserv.ui.components.BannerTopBar
 
@@ -65,8 +66,10 @@ fun OperatorListScreen(
                 verticalArrangement = Arrangement.spacedBy(8.dp)
             ) {
                 items(uiState.operators) { operator ->
+                    val summary = uiState.paymentSummary.find { it.operatorId == operator.id }
                     OperatorCard(
                         operator = operator,
+                        summary = summary,
                         onToggleActive = { viewModel.toggleActive(operator) },
                         onEdit = { onNavigateToForm(operator.id) },
                         onDelete = { viewModel.deleteOperator(operator) }
@@ -80,6 +83,7 @@ fun OperatorListScreen(
 @Composable
 fun OperatorCard(
     operator: Operator,
+    summary: OperatorPaymentSummary?,
     onToggleActive: () -> Unit,
     onEdit: () -> Unit,
     onDelete: () -> Unit
@@ -104,6 +108,18 @@ fun OperatorCard(
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
+                if (summary != null) {
+                    Spacer(modifier = Modifier.height(4.dp))
+                    Text(
+                        text = "Pendiente: $${String.format("%.2f", summary.pendiente)} · Pagado: $${String.format("%.2f", summary.pagado)}",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = if (summary.pendiente > 0) {
+                            MaterialTheme.colorScheme.error
+                        } else {
+                            MaterialTheme.colorScheme.primary
+                        }
+                    )
+                }
             }
             Column(horizontalAlignment = Alignment.CenterHorizontally) {
                 Text(

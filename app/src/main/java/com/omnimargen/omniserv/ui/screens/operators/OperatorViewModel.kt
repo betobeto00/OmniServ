@@ -5,6 +5,7 @@ import androidx.lifecycle.viewModelScope
 import com.omnimargen.omniserv.domain.model.Operator
 import com.omnimargen.omniserv.domain.usecase.operator.AddOperatorUseCase
 import com.omnimargen.omniserv.domain.usecase.operator.DeleteOperatorUseCase
+import com.omnimargen.omniserv.domain.usecase.operator.GetOperatorPaymentSummaryUseCase
 import com.omnimargen.omniserv.domain.usecase.operator.GetOperatorsUseCase
 import com.omnimargen.omniserv.domain.usecase.operator.ToggleOperatorActiveUseCase
 import com.omnimargen.omniserv.domain.usecase.operator.UpdateOperatorUseCase
@@ -22,7 +23,8 @@ class OperatorViewModel @Inject constructor(
     private val addOperatorUseCase: AddOperatorUseCase,
     private val updateOperatorUseCase: UpdateOperatorUseCase,
     private val deleteOperatorUseCase: DeleteOperatorUseCase,
-    private val toggleOperatorActiveUseCase: ToggleOperatorActiveUseCase
+    private val toggleOperatorActiveUseCase: ToggleOperatorActiveUseCase,
+    private val getOperatorPaymentSummaryUseCase: GetOperatorPaymentSummaryUseCase
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(OperatorUiState())
@@ -37,6 +39,11 @@ class OperatorViewModel @Inject constructor(
             _uiState.update { it.copy(isLoading = true) }
             getOperatorsUseCase().collect { operators ->
                 _uiState.update { it.copy(operators = operators, isLoading = false) }
+            }
+        }
+        viewModelScope.launch {
+            getOperatorPaymentSummaryUseCase().collect { summary ->
+                _uiState.update { it.copy(paymentSummary = summary) }
             }
         }
     }
