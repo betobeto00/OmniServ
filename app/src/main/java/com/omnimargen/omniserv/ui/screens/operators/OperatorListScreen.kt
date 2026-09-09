@@ -39,6 +39,7 @@ import com.omnimargen.omniserv.ui.components.BannerTopBar
 @Composable
 fun OperatorListScreen(
     onNavigateToForm: (Long?) -> Unit,
+    onNavigateToDetail: (Long) -> Unit = {},
     viewModel: OperatorViewModel = hiltViewModel()
 ) {
     val uiState by viewModel.uiState.collectAsState()
@@ -70,6 +71,7 @@ fun OperatorListScreen(
                     OperatorCard(
                         operator = operator,
                         summary = summary,
+                        onClick = { onNavigateToDetail(operator.id) },
                         onToggleActive = { viewModel.toggleActive(operator) },
                         onEdit = { onNavigateToForm(operator.id) },
                         onDelete = { viewModel.deleteOperator(operator) }
@@ -84,12 +86,14 @@ fun OperatorListScreen(
 fun OperatorCard(
     operator: Operator,
     summary: OperatorPaymentSummary?,
+    onClick: () -> Unit = {},
     onToggleActive: () -> Unit,
     onEdit: () -> Unit,
     onDelete: () -> Unit
 ) {
     Card(
         modifier = Modifier.fillMaxWidth(),
+        onClick = onClick,
         elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
     ) {
         Row(

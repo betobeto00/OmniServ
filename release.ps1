@@ -42,6 +42,19 @@ if ($LASTEXITCODE -ne 0) {
     exit 1
 }
 
+# Renombrar APK
+$apkDir = "app\build\outputs\apk\release"
+$oldApk = Join-Path $apkDir "app-release.apk"
+$newApkName = "OmniServV$($Version.Replace('.', '')).apk"
+$newApk = Join-Path $apkDir $newApkName
+
+if (Test-Path $oldApk) {
+    Rename-Item -Path $oldApk -NewName $newApkName -Force
+    Write-Host "APK renombrado a: $newApkName" -ForegroundColor Green
+} else {
+    Write-Warning "No se encontro $oldApk - verifica la compilacion"
+}
+
 # Crear tag
 Write-Host "Creando tag v$Version..." -ForegroundColor Green
 git add -A
@@ -54,5 +67,5 @@ git push origin main
 git push origin "v$Version"
 
 Write-Host "=== Release v$Version completada ===" -ForegroundColor Cyan
-Write-Host "El APK está en: app\build\outputs\apk\release\" -ForegroundColor Yellow
+Write-Host "El APK esta en: $apkDir\$newApkName" -ForegroundColor Yellow
 Write-Host "Cree un release en GitHub: https://github.com/betobeto00/OmniServ/releases/new" -ForegroundColor Yellow

@@ -28,6 +28,7 @@ import com.omnimargen.omniserv.ui.screens.clients.ClientListScreen
 import com.omnimargen.omniserv.ui.screens.history.HistoryScreen
 import com.omnimargen.omniserv.ui.screens.home.HomeScreen
 import com.omnimargen.omniserv.ui.screens.legal.LegalScreen
+import com.omnimargen.omniserv.ui.screens.operators.OperatorDetailScreen
 import com.omnimargen.omniserv.ui.screens.operators.OperatorFormScreen
 import com.omnimargen.omniserv.ui.screens.operators.OperatorListScreen
 import com.omnimargen.omniserv.ui.screens.serviceTypes.ServiceTypeFormScreen
@@ -94,6 +95,9 @@ fun OmniServNavGraph() {
                     onNavigateToServiceForm = {
                         navController.navigate("service_form/-1")
                     },
+                    onNavigateToServiceDetail = { serviceId ->
+                        navController.navigate("service_detail/$serviceId")
+                    },
                     onNavigateToLegal = {
                         navController.navigate("legal")
                     }
@@ -159,7 +163,21 @@ fun OmniServNavGraph() {
                 OperatorListScreen(
                     onNavigateToForm = { operatorId ->
                         navController.navigate("operator_form/${operatorId ?: -1}")
+                    },
+                    onNavigateToDetail = { operatorId ->
+                        navController.navigate("operator_detail/$operatorId")
                     }
+                )
+            }
+
+            composable(
+                "operator_detail/{operatorId}",
+                arguments = listOf(navArgument("operatorId") { type = NavType.LongType })
+            ) { backStackEntry ->
+                val operatorId = backStackEntry.arguments?.getLong("operatorId") ?: return@composable
+                OperatorDetailScreen(
+                    operatorId = operatorId,
+                    onNavigateBack = { navController.popBackStack() }
                 )
             }
 

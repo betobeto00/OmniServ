@@ -32,6 +32,7 @@ data class ServiceEntity(
     @PrimaryKey(autoGenerate = true)
     val id: Long = 0,
     val clienteId: Long,
+    val clienteTelefono: String = "",
     val serviceTypeId: Long? = null,
     val tipoServicio: String,
     val fechaServicio: Long,

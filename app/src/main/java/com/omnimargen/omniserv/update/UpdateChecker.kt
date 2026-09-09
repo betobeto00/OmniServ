@@ -4,6 +4,8 @@ import android.content.Context
 import android.content.pm.PackageManager
 import android.os.Build
 import dagger.hilt.android.qualifiers.ApplicationContext
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
 import org.json.JSONObject
 import java.io.IOException
 import java.net.HttpURLConnection
@@ -20,7 +22,7 @@ class UpdateChecker @Inject constructor(
         private const val GITHUB_API_URL = "https://api.github.com/repos/$GITHUB_REPO/releases/latest"
     }
 
-    suspend fun checkForUpdate(): UpdateInfo? {
+    suspend fun checkForUpdate(): UpdateInfo? = withContext(Dispatchers.IO) {
         // Fallo de red/conexión: propagar la excepción para que la UI
         // informe de un error de verificación en vez de ("falsamente") "al día".
         val url = URL(GITHUB_API_URL)
@@ -61,7 +63,7 @@ class UpdateChecker @Inject constructor(
         val currentVersion = getCurrentVersion()
         val isNewer = compareVersions(versionName, currentVersion) > 0
 
-        return if (isNewer && apkUrl != null) {
+        if (isNewer && apkUrl != null) {
             UpdateInfo(
                 versionName = versionName,
                 tagName = tagName,

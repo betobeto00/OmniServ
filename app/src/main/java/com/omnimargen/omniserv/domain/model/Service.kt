@@ -6,6 +6,7 @@ data class Service(
     val id: Long = 0,
     val clienteId: Long,
     val clienteNombre: String = "",
+    val clienteTelefono: String = "",
     val serviceTypeId: Long? = null,
     val tipoServicio: String,
     val fechaServicio: Date,

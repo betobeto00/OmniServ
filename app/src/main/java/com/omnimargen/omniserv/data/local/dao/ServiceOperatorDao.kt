@@ -5,6 +5,7 @@ import androidx.room.Delete
 import androidx.room.Insert
 import androidx.room.OnConflictStrategy
 import androidx.room.Query
+import com.omnimargen.omniserv.data.local.entity.ServiceEntity
 import com.omnimargen.omniserv.data.local.entity.ServiceOperatorEntity
 import kotlinx.coroutines.flow.Flow
 
@@ -41,6 +42,24 @@ interface ServiceOperatorDao {
 
     @Query("DELETE FROM service_operators WHERE operatorId = :operatorId")
     suspend fun deleteByOperatorId(operatorId: Long)
+
+    @Query(
+        """
+        SELECT s.* FROM services s
+        INNER JOIN service_operators so ON so.serviceId = s.id
+        WHERE so.operatorId = :operatorId
+        ORDER BY s.fechaServicio DESC
+        """
+    )
+    fun getServicesByOperatorId(operatorId: Long): Flow<List<ServiceEntity>>
+
+    @Query(
+        """
+        SELECT so.* FROM service_operators so
+        WHERE so.operatorId = :operatorId
+        """
+    )
+    fun getOperatorServices(operatorId: Long): Flow<List<ServiceOperatorEntity>>
 
     @Query(
         """

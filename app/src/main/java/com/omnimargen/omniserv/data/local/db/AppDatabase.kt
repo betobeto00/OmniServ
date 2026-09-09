@@ -28,7 +28,7 @@ import com.omnimargen.omniserv.data.local.entity.ServiceTypeEntity
         ServiceOperatorEntity::class,
         LicenseEntity::class
     ],
-    version = 2,
+    version = 3,
     exportSchema = false
 )
 @TypeConverters(DateConverter::class)
@@ -39,6 +39,13 @@ abstract class AppDatabase : RoomDatabase() {
             override fun migrate(db: SupportSQLiteDatabase) {
                 db.execSQL("ALTER TABLE services ADD COLUMN numeroFactura TEXT")
                 db.execSQL("ALTER TABLE service_operators ADD COLUMN pagado INTEGER NOT NULL DEFAULT 0")
+            }
+        }
+
+        // v3: clienteTelefono en services
+        val MIGRATION_2_3 = object : Migration(2, 3) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL("ALTER TABLE services ADD COLUMN clienteTelefono TEXT NOT NULL DEFAULT ''")
             }
         }
     }

@@ -65,6 +65,7 @@ fun ServiceFormScreen(
     var tipoServicio by remember { mutableStateOf("") }
     var monto by remember { mutableStateOf("") }
     var notas by remember { mutableStateOf("") }
+    var numeroFactura by remember { mutableStateOf("") }
     var showDatePicker by remember { mutableStateOf(false) }
     var selectedDate by remember { mutableStateOf(Date()) }
     // operatorId → monto a pagar (string del campo de texto)
@@ -82,6 +83,7 @@ fun ServiceFormScreen(
                 monto = it.monto.toString()
                 notas = it.notas
                 selectedDate = it.fechaServicio
+                numeroFactura = it.numeroFactura ?: ""
                 selectedOperators = it.operarios.associate { op ->
                     op.operatorId to (op.montoPago.takeIf { m -> m > 0 }?.toString() ?: "")
                 }
@@ -258,6 +260,16 @@ fun ServiceFormScreen(
                 minLines = 2
             )
 
+            Spacer(modifier = Modifier.height(12.dp))
+
+            OutlinedTextField(
+                value = numeroFactura,
+                onValueChange = { numeroFactura = it },
+                modifier = Modifier.fillMaxWidth(),
+                label = { Text("N° Factura") },
+                placeholder = { Text("Ej: 3484") }
+            )
+
             Spacer(modifier = Modifier.height(16.dp))
 
             Button(
@@ -271,6 +283,7 @@ fun ServiceFormScreen(
                             fechaServicio = selectedDate,
                             monto = monto.toDouble(),
                             notas = notas.trim(),
+                            numeroFactura = numeroFactura.ifBlank { null },
                             operarios = selectedOperators.map { (opId, montoOperario) ->
                                 val op = uiState.operators.find { it.id == opId }
                                 ServiceOperator(

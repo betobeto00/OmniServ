@@ -89,10 +89,19 @@ fun ServiceDetailScreen(
                             modifier = Modifier.fillMaxWidth(),
                             horizontalArrangement = Arrangement.SpaceBetween
                         ) {
-                            Text(
-                                text = service.clienteNombre,
-                                style = MaterialTheme.typography.headlineSmall
-                            )
+                            Column(modifier = Modifier.weight(1f)) {
+                                Text(
+                                    text = service.clienteNombre,
+                                    style = MaterialTheme.typography.headlineSmall
+                                )
+                                if (service.clienteTelefono.isNotBlank()) {
+                                    Text(
+                                        text = service.clienteTelefono,
+                                        style = MaterialTheme.typography.bodyMedium,
+                                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                                    )
+                                }
+                            }
                             Text(
                                 text = "$${String.format("%.2f", service.monto)}",
                                 style = MaterialTheme.typography.headlineSmall,

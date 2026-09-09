@@ -1,5 +1,6 @@
 package com.omnimargen.omniserv.data.repository
 
+import com.omnimargen.omniserv.data.local.dao.ClientDao
 import com.omnimargen.omniserv.data.local.dao.OperatorDao
 import com.omnimargen.omniserv.data.local.dao.OperatorPaymentSummary
 import com.omnimargen.omniserv.data.local.dao.ServiceDao
@@ -18,11 +19,16 @@ import javax.inject.Singleton
 class ServiceRepository @Inject constructor(
     private val serviceDao: ServiceDao,
     private val serviceOperatorDao: ServiceOperatorDao,
-    private val operatorDao: OperatorDao
+    private val operatorDao: OperatorDao,
+    private val clientDao: ClientDao
 ) {
     fun getAll(): Flow<List<Service>> = serviceDao.getAll().map { entities ->
         entities.map { entity ->
-            entity.toDomain().copy(operarios = getOperatorWithNames(entity.id))
+            val client = clientDao.getById(entity.clienteId)
+            entity.toDomain().copy(
+                clienteTelefono = client?.telefono ?: "",
+                operarios = getOperatorWithNames(entity.id)
+            )
         }
     }
 
@@ -52,20 +58,18 @@ class ServiceRepository @Inject constructor(
     suspend fun getById(id: Long): Service? = serviceDao.getById(id)?.toDomain()
 
     suspend fun insert(service: Service): Long {
-        val entity = if (service.numeroFactura.isNullOrBlank()) {
-            service.copy(numeroFactura = nextNumeroFactura()).toEntity()
-        } else {
-            service.toEntity()
+        val entity = service.toEntity()
+        val id = serviceDao.insert(entity)
+        if (service.operarios.isNotEmpty()) {
+            assignOperators(id, service.operarios)
         }
-        return serviceDao.insert(entity)
+        return id
     }
 
-    private suspend fun nextNumeroFactura(): String {
-        val siguiente = serviceDao.countWithFactura() + 1
-        return "F-" + siguiente.toString().padStart(4, '0')
+    suspend fun update(service: Service) {
+        serviceDao.update(service.toEntity())
+        assignOperators(service.id, service.operarios)
     }
-
-    suspend fun update(service: Service) = serviceDao.update(service.toEntity())
 
     suspend fun delete(service: Service) = serviceDao.delete(service.toEntity())
 
@@ -91,4 +95,20 @@ class ServiceRepository @Inject constructor(
             )
         }
     }
+
+    fun getServicesByOperatorId(operatorId: Long): Flow<List<Service>> =
+        serviceOperatorDao.getServicesByOperatorId(operatorId).map { entities ->
+            entities.map { entity ->
+                val client = clientDao.getById(entity.clienteId)
+                entity.toDomain().copy(
+                    clienteTelefono = client?.telefono ?: "",
+                    operarios = getOperatorWithNames(entity.id)
+                )
+            }
+        }
+
+    fun getOperatorServices(operatorId: Long): Flow<List<ServiceOperator>> =
+        serviceOperatorDao.getOperatorServices(operatorId).map { entities ->
+            entities.map { it.toDomain() }
+        }
 }

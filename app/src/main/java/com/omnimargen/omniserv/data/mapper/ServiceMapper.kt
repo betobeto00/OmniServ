@@ -13,6 +13,7 @@ import java.util.Date
 fun ServiceEntity.toDomain(): Service = Service(
     id = id,
     clienteId = clienteId,
+    clienteTelefono = clienteTelefono,
     serviceTypeId = serviceTypeId,
     tipoServicio = tipoServicio,
     fechaServicio = Date(fechaServicio),
@@ -26,6 +27,7 @@ fun ServiceEntity.toDomain(): Service = Service(
 fun Service.toEntity(): ServiceEntity = ServiceEntity(
     id = id,
     clienteId = clienteId,
+    clienteTelefono = clienteTelefono,
     serviceTypeId = serviceTypeId,
     tipoServicio = tipoServicio,
     fechaServicio = fechaServicio.time,

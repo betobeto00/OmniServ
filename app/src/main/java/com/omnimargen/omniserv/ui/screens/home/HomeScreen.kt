@@ -64,6 +64,7 @@ import java.util.Locale
 @Composable
 fun HomeScreen(
     onNavigateToServiceForm: () -> Unit = {},
+    onNavigateToServiceDetail: (Long) -> Unit = {},
     onNavigateToLegal: () -> Unit = {},
     viewModel: HomeViewModel = hiltViewModel(),
     updateViewModel: UpdateViewModel = hiltViewModel()
@@ -170,7 +171,11 @@ fun HomeScreen(
                     SectionTitle("Servicios de Hoy")
                 }
                 items(uiState.todayServices) { service ->
-                    ServiceQuickCard(service = service, dateFormat = dateFormat)
+                    ServiceQuickCard(
+                        service = service,
+                        dateFormat = dateFormat,
+                        onClick = { onNavigateToServiceDetail(service.id) }
+                    )
                 }
             }
 
@@ -179,7 +184,11 @@ fun HomeScreen(
                     SectionTitle("Próximos Servicios")
                 }
                 items(uiState.upcomingServices) { service ->
-                    ServiceQuickCard(service = service, dateFormat = dateFormat)
+                    ServiceQuickCard(
+                        service = service,
+                        dateFormat = dateFormat,
+                        onClick = { onNavigateToServiceDetail(service.id) }
+                    )
                 }
             }
 
@@ -188,7 +197,11 @@ fun HomeScreen(
                     SectionTitle("Pendientes")
                 }
                 items(uiState.pendingServices.take(5)) { service ->
-                    ServiceQuickCard(service = service, dateFormat = dateFormat)
+                    ServiceQuickCard(
+                        service = service,
+                        dateFormat = dateFormat,
+                        onClick = { onNavigateToServiceDetail(service.id) }
+                    )
                 }
             }
 
@@ -288,9 +301,14 @@ fun SectionTitle(title: String) {
 }
 
 @Composable
-fun ServiceQuickCard(service: Service, dateFormat: SimpleDateFormat) {
+fun ServiceQuickCard(
+    service: Service,
+    dateFormat: SimpleDateFormat,
+    onClick: () -> Unit = {}
+) {
     Card(
         modifier = Modifier.fillMaxWidth(),
+        onClick = onClick,
         elevation = CardDefaults.cardElevation(defaultElevation = 1.dp)
     ) {
         Row(
@@ -306,6 +324,13 @@ fun ServiceQuickCard(service: Service, dateFormat: SimpleDateFormat) {
                     style = MaterialTheme.typography.bodyLarge,
                     fontWeight = FontWeight.Medium
                 )
+                if (service.clienteTelefono.isNotBlank()) {
+                    Text(
+                        text = service.clienteTelefono,
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
                 Text(
                     text = service.tipoServicio,
                     style = MaterialTheme.typography.bodySmall,
