@@ -3,12 +3,14 @@ package com.omnimargen.omniserv.ui.screens.services
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.omnimargen.omniserv.domain.model.Service
+import com.omnimargen.omniserv.domain.model.ServiceOperator
 import com.omnimargen.omniserv.domain.model.ServiceStatus
 import com.omnimargen.omniserv.domain.usecase.client.GetClientsUseCase
 import com.omnimargen.omniserv.domain.usecase.operator.GetOperatorsUseCase
 import com.omnimargen.omniserv.domain.usecase.service.AddServiceUseCase
 import com.omnimargen.omniserv.domain.usecase.service.DeleteServiceUseCase
 import com.omnimargen.omniserv.domain.usecase.service.GetServicesUseCase
+import com.omnimargen.omniserv.domain.usecase.service.UpdateOperatorPaymentUseCase
 import com.omnimargen.omniserv.domain.usecase.service.UpdateServiceUseCase
 import com.omnimargen.omniserv.domain.usecase.serviceType.GetAllServiceTypesUseCase
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -27,7 +29,8 @@ class ServiceViewModel @Inject constructor(
     private val deleteServiceUseCase: DeleteServiceUseCase,
     private val getClientsUseCase: GetClientsUseCase,
     private val getAllServiceTypesUseCase: GetAllServiceTypesUseCase,
-    private val getOperatorsUseCase: GetOperatorsUseCase
+    private val getOperatorsUseCase: GetOperatorsUseCase,
+    private val updateOperatorPaymentUseCase: UpdateOperatorPaymentUseCase
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(ServiceUiState())
@@ -86,6 +89,12 @@ class ServiceViewModel @Inject constructor(
     fun updateServiceStatus(service: Service, newStatus: ServiceStatus) {
         viewModelScope.launch {
             updateServiceUseCase(service.copy(estado = newStatus))
+        }
+    }
+
+    fun updateOperatorPayment(serviceId: Long, operators: List<ServiceOperator>) {
+        viewModelScope.launch {
+            updateOperatorPaymentUseCase(serviceId, operators)
         }
     }
 }

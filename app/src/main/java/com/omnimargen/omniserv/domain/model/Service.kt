@@ -13,6 +13,7 @@ data class Service(
     val estado: ServiceStatus = ServiceStatus.PENDIENTE,
     val operarios: List<ServiceOperator> = emptyList(),
     val notas: String = "",
+    val numeroFactura: String? = null,
     val fechaCreacion: Date = Date()
 )
 
@@ -21,7 +22,8 @@ data class ServiceOperator(
     val serviceId: Long = 0,
     val operatorId: Long,
     val operatorNombre: String = "",
-    val montoPago: Double = 0.0
+    val montoPago: Double = 0.0,
+    val pagado: Boolean = false
 )
 
 enum class ServiceStatus {

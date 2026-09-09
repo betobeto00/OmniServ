@@ -20,7 +20,9 @@ class ServiceRepository @Inject constructor(
     private val operatorDao: OperatorDao
 ) {
     fun getAll(): Flow<List<Service>> = serviceDao.getAll().map { entities ->
-        entities.map { it.toDomain() }
+        entities.map { entity ->
+            entity.toDomain().copy(operarios = getOperatorWithNames(entity.id))
+        }
     }
 
     fun getByDateRange(start: Long, end: Long): Flow<List<Service>> =
@@ -48,7 +50,19 @@ class ServiceRepository @Inject constructor(
 
     suspend fun getById(id: Long): Service? = serviceDao.getById(id)?.toDomain()
 
-    suspend fun insert(service: Service): Long = serviceDao.insert(service.toEntity())
+    suspend fun insert(service: Service): Long {
+        val entity = if (service.numeroFactura.isNullOrBlank()) {
+            service.copy(numeroFactura = nextNumeroFactura()).toEntity()
+        } else {
+            service.toEntity()
+        }
+        return serviceDao.insert(entity)
+    }
+
+    private suspend fun nextNumeroFactura(): String {
+        val siguiente = serviceDao.countWithFactura() + 1
+        return "F-" + siguiente.toString().padStart(4, '0')
+    }
 
     suspend fun update(service: Service) = serviceDao.update(service.toEntity())
 

@@ -2,7 +2,6 @@ package com.omnimargen.omniserv.ui.screens.activation
 
 import android.content.Context
 import android.content.Intent
-import android.content.pm.PackageManager
 import android.net.Uri
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
@@ -273,12 +272,12 @@ class ActivationViewModel @Inject constructor(
     }
 
     fun isCrixtoAppInstalled(context: Context): Boolean {
-        return try {
-            context.packageManager.getPackageInfo("crixto.pay", 0)
-            true
-        } catch (e: PackageManager.NameNotFoundException) {
-            false
+        // resolveActivity valida que el deep link sea resoluble por la app de
+        // Crixto (además de la visibilidad de paquete declarada en <queries>).
+        val intent = Intent(Intent.ACTION_VIEW, Uri.parse(getCrixtoDeepLink())).apply {
+            setPackage("crixto.pay")
         }
+        return intent.resolveActivity(context.packageManager) != null
     }
 
     fun openCrixto(context: Context) {

@@ -19,6 +19,7 @@ fun ServiceEntity.toDomain(): Service = Service(
     monto = monto,
     estado = ServiceStatus.valueOf(estado),
     notas = notas,
+    numeroFactura = numeroFactura,
     fechaCreacion = Date(fechaCreacion)
 )
 
@@ -31,6 +32,7 @@ fun Service.toEntity(): ServiceEntity = ServiceEntity(
     monto = monto,
     estado = estado.name,
     notas = notas,
+    numeroFactura = numeroFactura,
     fechaCreacion = fechaCreacion.time
 )
 
@@ -38,14 +40,16 @@ fun ServiceOperatorEntity.toDomain(): ServiceOperator = ServiceOperator(
     id = id,
     serviceId = serviceId,
     operatorId = operatorId,
-    montoPago = montoPago
+    montoPago = montoPago,
+    pagado = pagado
 )
 
 fun ServiceOperator.toEntity(serviceId: Long): ServiceOperatorEntity = ServiceOperatorEntity(
     id = id,
     serviceId = serviceId,
     operatorId = operatorId,
-    montoPago = montoPago
+    montoPago = montoPago,
+    pagado = pagado
 )
 
 fun LicenseEntity.toDomain(): License = License(

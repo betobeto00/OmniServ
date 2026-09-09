@@ -31,6 +31,9 @@ interface ServiceDao {
     @Query("SELECT * FROM services WHERE id = :id")
     suspend fun getById(id: Long): ServiceEntity?
 
+    @Query("SELECT COUNT(*) FROM services WHERE numeroFactura IS NOT NULL")
+    suspend fun countWithFactura(): Int
+
     @Insert
     suspend fun insert(service: ServiceEntity): Long
 

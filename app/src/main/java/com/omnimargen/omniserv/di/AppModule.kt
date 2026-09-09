@@ -27,7 +27,7 @@ object AppModule {
             context,
             AppDatabase::class.java,
             "omniserv.db"
-        ).build()
+        ).addMigrations(AppDatabase.MIGRATION_1_2).build()
     }
 
     @Provides

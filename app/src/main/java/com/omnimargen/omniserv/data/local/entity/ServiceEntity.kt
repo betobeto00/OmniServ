@@ -38,5 +38,6 @@ data class ServiceEntity(
     val monto: Double,
     val estado: String = "PENDIENTE",
     val notas: String = "",
+    val numeroFactura: String? = null,
     val fechaCreacion: Long
 )

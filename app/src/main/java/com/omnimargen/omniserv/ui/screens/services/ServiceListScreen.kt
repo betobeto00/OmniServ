@@ -147,6 +147,14 @@ fun ServiceCard(
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                         fontSize = 13.sp
                     )
+                    if (!service.numeroFactura.isNullOrBlank()) {
+                        Text(
+                            text = "Factura ${service.numeroFactura}",
+                            style = MaterialTheme.typography.labelSmall,
+                            color = MaterialTheme.colorScheme.primary,
+                            fontSize = 11.sp
+                        )
+                    }
                 }
                 Text(
                     text = "$${String.format("%.2f", service.monto)}",

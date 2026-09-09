@@ -7,8 +7,10 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.ui.Alignment
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Add
@@ -65,7 +67,8 @@ fun ServiceFormScreen(
     var notas by remember { mutableStateOf("") }
     var showDatePicker by remember { mutableStateOf(false) }
     var selectedDate by remember { mutableStateOf(Date()) }
-    var selectedOperators by remember { mutableStateOf(setOf<Long>()) }
+    // operatorId → monto a pagar (string del campo de texto)
+    var selectedOperators by remember { mutableStateOf(mapOf<Long, String>()) }
     var expandedClient by remember { mutableStateOf(false) }
     var expandedType by remember { mutableStateOf(false) }
 
@@ -79,7 +82,9 @@ fun ServiceFormScreen(
                 monto = it.monto.toString()
                 notas = it.notas
                 selectedDate = it.fechaServicio
-                selectedOperators = it.operarios.map { op -> op.operatorId }.toSet()
+                selectedOperators = it.operarios.associate { op ->
+                    op.operatorId to (op.montoPago.takeIf { m -> m > 0 }?.toString() ?: "")
+                }
             }
         }
     }
@@ -209,13 +214,14 @@ fun ServiceFormScreen(
             Text("Operarios:", style = MaterialTheme.typography.titleSmall)
             uiState.operators.filter { it.activo }.forEach { operator ->
                 Row(
-                    modifier = Modifier.fillMaxWidth()
+                    modifier = Modifier.fillMaxWidth(),
+                    verticalAlignment = Alignment.CenterVertically
                 ) {
                     Checkbox(
-                        checked = selectedOperators.contains(operator.id),
+                        checked = selectedOperators.containsKey(operator.id),
                         onCheckedChange = { checked ->
                             selectedOperators = if (checked) {
-                                selectedOperators + operator.id
+                                selectedOperators + (operator.id to "")
                             } else {
                                 selectedOperators - operator.id
                             }
@@ -223,8 +229,22 @@ fun ServiceFormScreen(
                     )
                     Text(
                         text = operator.nombre,
-                        modifier = Modifier.padding(top = 12.dp)
+                        modifier = Modifier.weight(1f)
                     )
+                    if (selectedOperators.containsKey(operator.id)) {
+                        OutlinedTextField(
+                            value = selectedOperators[operator.id] ?: "",
+                            onValueChange = { value ->
+                                selectedOperators = selectedOperators + (operator.id to value)
+                            },
+                            modifier = Modifier.width(110.dp),
+                            label = { Text("Monto $") },
+                            singleLine = true,
+                            keyboardOptions = androidx.compose.foundation.text.KeyboardOptions(
+                                keyboardType = androidx.compose.ui.text.input.KeyboardType.Decimal
+                            )
+                        )
+                    }
                 }
             }
 
@@ -251,11 +271,12 @@ fun ServiceFormScreen(
                             fechaServicio = selectedDate,
                             monto = monto.toDouble(),
                             notas = notas.trim(),
-                            operarios = selectedOperators.map { opId ->
+                            operarios = selectedOperators.map { (opId, montoOperario) ->
                                 val op = uiState.operators.find { it.id == opId }
                                 ServiceOperator(
                                     operatorId = opId,
-                                    operatorNombre = op?.nombre ?: ""
+                                    operatorNombre = op?.nombre ?: "",
+                                    montoPago = montoOperario.toDoubleOrNull() ?: 0.0
                                 )
                             }
                         )

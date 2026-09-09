@@ -14,6 +14,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.Checkbox
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.FilterChipDefaults
@@ -25,7 +26,9 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.omnimargen.omniserv.domain.model.ServiceStatus
@@ -98,6 +101,15 @@ fun ServiceDetailScreen(
                         }
 
                         Spacer(modifier = Modifier.height(8.dp))
+
+                        if (!service.numeroFactura.isNullOrBlank()) {
+                            Text(
+                                text = "Factura N°: ${service.numeroFactura}",
+                                style = MaterialTheme.typography.bodyLarge,
+                                fontWeight = FontWeight.Bold
+                            )
+                            Spacer(modifier = Modifier.height(4.dp))
+                        }
 
                         Text(
                             text = "Tipo: ${service.tipoServicio}",
@@ -176,18 +188,49 @@ fun ServiceDetailScreen(
                             Row(
                                 modifier = Modifier
                                     .fillMaxWidth()
-                                    .padding(12.dp),
+                                    .padding(horizontal = 12.dp, vertical = 4.dp),
+                                verticalAlignment = Alignment.CenterVertically,
                                 horizontalArrangement = Arrangement.SpaceBetween
                             ) {
-                                Text(
-                                    text = serviceOperator.operatorNombre,
-                                    style = MaterialTheme.typography.bodyLarge
-                                )
-                                Text(
-                                    text = "$${String.format("%.2f", serviceOperator.montoPago)}",
-                                    style = MaterialTheme.typography.bodyLarge,
-                                    color = MaterialTheme.colorScheme.primary
-                                )
+                                Column(modifier = Modifier.weight(1f)) {
+                                    Text(
+                                        text = serviceOperator.operatorNombre,
+                                        style = MaterialTheme.typography.bodyLarge
+                                    )
+                                    Text(
+                                        text = "Pago: $${String.format("%.2f", serviceOperator.montoPago)}",
+                                        style = MaterialTheme.typography.bodyMedium,
+                                        color = if (serviceOperator.pagado) {
+                                            MaterialTheme.colorScheme.primary
+                                        } else {
+                                            MaterialTheme.colorScheme.onSurfaceVariant
+                                        }
+                                    )
+                                }
+                                Row(verticalAlignment = Alignment.CenterVertically) {
+                                    Text(
+                                        text = if (serviceOperator.pagado) "Pagado" else "Pendiente",
+                                        style = MaterialTheme.typography.labelMedium,
+                                        color = if (serviceOperator.pagado) {
+                                            MaterialTheme.colorScheme.primary
+                                        } else {
+                                            MaterialTheme.colorScheme.onSurfaceVariant
+                                        }
+                                    )
+                                    Checkbox(
+                                        checked = serviceOperator.pagado,
+                                        onCheckedChange = {
+                                            val nuevos = service.operarios.map { op ->
+                                                if (op.operatorId == serviceOperator.operatorId) {
+                                                    op.copy(pagado = !op.pagado)
+                                                } else {
+                                                    op
+                                                }
+                                            }
+                                            viewModel.updateOperatorPayment(service.id, nuevos)
+                                        }
+                                    )
+                                }
                             }
                         }
                     }

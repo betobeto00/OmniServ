@@ -32,5 +32,6 @@ data class ServiceOperatorEntity(
     val id: Long = 0,
     val serviceId: Long,
     val operatorId: Long,
-    val montoPago: Double = 0.0
+    val montoPago: Double = 0.0,
+    val pagado: Boolean = false
 )
