@@ -63,7 +63,7 @@ git tag -a "v$Version" -m "Release v$Version"
 
 # Push
 Write-Host "Pushing to origin..." -ForegroundColor Green
-git push origin main
+git push origin master
 git push origin "v$Version"
 
 Write-Host "=== Release v$Version completada ===" -ForegroundColor Cyan
