@@ -1,5 +1,5 @@
 # OmniServ Release Script
-# Uso: .\release.ps1 -Version "1.0.0"
+# Uso: .\release.ps1 -Version "1.2.0"
 
 param(
     [Parameter(Mandatory=$true)]
