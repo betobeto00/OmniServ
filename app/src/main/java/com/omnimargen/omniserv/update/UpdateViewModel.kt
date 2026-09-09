@@ -52,9 +52,11 @@ class UpdateViewModel @Inject constructor(
             } catch (e: Exception) {
                 val msg = when {
                     e.message?.contains("timeout", true) == true -> "Sin conexión. Verifica tu red."
-                    e.message?.contains("403", true) == true -> "Límite de solicitudes. Intenta más tarde."
+                    e.message?.contains("HTTP 403", true) == true -> "Límite de solicitudes de GitHub. Intenta más tarde."
+                    e.message?.contains("HTTP 429", true) == true -> "Demasiadas solicitudes. Espera unos minutos."
                     e.message?.contains("Unable to resolve", true) == true -> "Sin acceso a internet."
-                    else -> "Error: ${e.localizedMessage ?: "desconocido"}"
+                    e.message?.contains("HTTP", true) == true -> e.message
+                    else -> "Error: ${e.localizedMessage ?: e.javaClass.simpleName}"
                 }
                 _uiState.update {
                     it.copy(

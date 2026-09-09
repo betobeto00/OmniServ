@@ -5,6 +5,8 @@ import android.content.pm.PackageManager
 import android.os.Build
 import dagger.hilt.android.qualifiers.ApplicationContext
 import org.json.JSONObject
+import java.io.IOException
+import java.net.HttpURLConnection
 import java.net.URL
 import javax.inject.Inject
 import javax.inject.Singleton
@@ -22,13 +24,20 @@ class UpdateChecker @Inject constructor(
         // Fallo de red/conexión: propagar la excepción para que la UI
         // informe de un error de verificación en vez de ("falsamente") "al día".
         val url = URL(GITHUB_API_URL)
-        val connection = url.openConnection().apply {
+        val connection = (url.openConnection() as HttpURLConnection).apply {
             setRequestProperty("User-Agent", "OmniServ/Android")
             connectTimeout = 10000
             readTimeout = 10000
+            requestMethod = "GET"
         }
 
-        val jsonString = connection.getInputStream().bufferedReader().use { it.readText() }
+        val responseCode = connection.responseCode
+        if (responseCode != 200) {
+            val errorBody = connection.errorStream?.bufferedReader()?.use { it.readText() } ?: ""
+            throw IOException("HTTP $responseCode: $errorBody")
+        }
+
+        val jsonString = connection.inputStream.bufferedReader().use { it.readText() }
         val json = JSONObject(jsonString)
 
         val tagName = json.getString("tag_name")
