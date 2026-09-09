@@ -22,9 +22,11 @@ class UpdateChecker @Inject constructor(
         // Fallo de red/conexión: propagar la excepción para que la UI
         // informe de un error de verificación en vez de ("falsamente") "al día".
         val url = URL(GITHUB_API_URL)
-        val connection = url.openConnection()
-        connection.connectTimeout = 5000
-        connection.readTimeout = 5000
+        val connection = url.openConnection().apply {
+            setRequestProperty("User-Agent", "OmniServ/Android")
+            connectTimeout = 10000
+            readTimeout = 10000
+        }
 
         val jsonString = connection.getInputStream().bufferedReader().use { it.readText() }
         val json = JSONObject(jsonString)

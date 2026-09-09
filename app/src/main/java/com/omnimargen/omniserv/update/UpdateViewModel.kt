@@ -50,11 +50,17 @@ class UpdateViewModel @Inject constructor(
                     )
                 }
             } catch (e: Exception) {
+                val msg = when {
+                    e.message?.contains("timeout", true) == true -> "Sin conexión. Verifica tu red."
+                    e.message?.contains("403", true) == true -> "Límite de solicitudes. Intenta más tarde."
+                    e.message?.contains("Unable to resolve", true) == true -> "Sin acceso a internet."
+                    else -> "Error: ${e.localizedMessage ?: "desconocido"}"
+                }
                 _uiState.update {
                     it.copy(
                         isChecking = false,
-                        error = "Error al verificar actualizaciones",
-                        checkMessage = if (notifyResult) "Error al verificar actualizaciones" else null
+                        error = msg,
+                        checkMessage = if (notifyResult) msg else null
                     )
                 }
             }
