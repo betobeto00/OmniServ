@@ -74,12 +74,29 @@ class UpdateViewModel @Inject constructor(
 
         _uiState.update { it.copy(isDownloading = true, downloadProgress = 0) }
 
+        // Iniciar la descarga real via DownloadManager
+        updateInstaller.downloadAndInstall(updateInfo)
+
         viewModelScope.launch {
-            // DownloadManager escribe el APK en disco; esperar a que exista evita
-            // lanzar el instalador con un archivo a medio escribir.
             val file = updateInstaller.getTargetFile(updateInfo)
+            if (file == null) {
+                _uiState.update {
+                    it.copy(isDownloading = false, error = "No se pudo acceder al almacenamiento")
+                }
+                return@launch
+            }
+
+            val maxAttempts = 120 // 60 segundos max (120 * 500ms)
+            var attempts = 0
             while (!file.exists() || file.length() == 0L) {
                 delay(500)
+                attempts++
+                if (attempts >= maxAttempts) {
+                    _uiState.update {
+                        it.copy(isDownloading = false, error = "La descarga tardó demasiado. Intenta de nuevo.")
+                    }
+                    return@launch
+                }
             }
             _uiState.update {
                 it.copy(
@@ -94,7 +111,7 @@ class UpdateViewModel @Inject constructor(
     /** Lanza el instalador de Android con el APK descargado (idempotente). */
     fun installDownloadedApk() {
         val updateInfo = _uiState.value.updateInfo ?: return
-        val file = updateInstaller.getTargetFile(updateInfo)
+        val file = updateInstaller.getTargetFile(updateInfo) ?: return
         if (file.exists()) {
             _uiState.update { it.copy(readyToInstall = false) }
             updateInstaller.installApk(file)

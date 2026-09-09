@@ -1,6 +1,7 @@
 package com.omnimargen.omniserv.update
 
 import android.app.DownloadManager
+import android.app.PendingIntent
 import android.content.Context
 import android.content.Intent
 import android.net.Uri
@@ -19,15 +20,16 @@ class UpdateInstaller @Inject constructor(
     private var downloadId: Long = -1
 
     /** Archivo local donde DownloadManager escribe el APK de la actualización. */
-    fun getTargetFile(updateInfo: UpdateInfo): File {
+    fun getTargetFile(updateInfo: UpdateInfo): File? {
         val fileName = "OmniServ_${updateInfo.versionName}.apk"
-        return File(context.getExternalFilesDir(Environment.DIRECTORY_DOWNLOADS), fileName)
+        val dir = context.getExternalFilesDir(Environment.DIRECTORY_DOWNLOADS) ?: return null
+        return File(dir, fileName)
     }
 
-    fun downloadAndInstall(updateInfo: UpdateInfo, onProgress: (Int) -> Unit = {}) {
-        val file = getTargetFile(updateInfo)
+    fun downloadAndInstall(updateInfo: UpdateInfo) {
+        val file = getTargetFile(updateInfo) ?: return
 
-        if (file.exists()) {
+        if (file.exists() && file.length() > 0) {
             installApk(file)
             return
         }
@@ -36,11 +38,12 @@ class UpdateInstaller @Inject constructor(
             .setTitle("Descargando OmniServ ${updateInfo.versionName}")
             .setDescription("Descargando actualización...")
             .setNotificationVisibility(DownloadManager.Request.VISIBILITY_VISIBLE_NOTIFY_COMPLETED)
-            .setDestinationUri(Uri.fromFile(file))
+            .setDestinationInExternalFilesDir(context, Environment.DIRECTORY_DOWNLOADS, file.name)
             .setAllowedOverMetered(true)
             .setAllowedOverRoaming(true)
 
-        val downloadManager = context.getSystemService(Context.DOWNLOAD_SERVICE) as DownloadManager
+        val downloadManager = context.getSystemService(Context.DOWNLOAD_SERVICE) as? DownloadManager
+            ?: return
         downloadId = downloadManager.enqueue(request)
     }
 
@@ -61,12 +64,23 @@ class UpdateInstaller @Inject constructor(
             addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
         }
 
-        context.startActivity(intent)
+        val pendingIntent = PendingIntent.getActivity(
+            context,
+            0,
+            intent,
+            PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
+        )
+        try {
+            pendingIntent.send()
+        } catch (_: Exception) {
+            context.startActivity(intent)
+        }
     }
 
     fun cancelDownload() {
         if (downloadId != -1L) {
-            val downloadManager = context.getSystemService(Context.DOWNLOAD_SERVICE) as DownloadManager
+            val downloadManager = context.getSystemService(Context.DOWNLOAD_SERVICE) as? DownloadManager
+                ?: return
             downloadManager.remove(downloadId)
             downloadId = -1
         }
