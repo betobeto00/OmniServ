@@ -32,8 +32,9 @@ Parte del ecosistema **OmniMargen**.
 ### Asignación de Operarios
 - Asignar uno o más operarios/técnicos a cada servicio
 - Control de pagos individuales por operario
-- Saber a quién pagar al completar un servicio
+- Resumen de pagos pendientes y cobrados por operario
 - Historial de pagos por operario
+- Invoice numbers en servicios
 
 ### Gestión de Operarios/Técnicos
 - Registro de técnicos (nombre, teléfono, especialidad)
@@ -59,6 +60,8 @@ Parte del ecosistema **OmniMargen**.
 - Diálogo "Nueva versión disponible" con notas de cambios
 - Descarga e instalación directa desde la app
 - Botón manual de actualización en la barra superior
+- User-Agent header para compatibilidad con GitHub API
+- Manejo de errores descriptivos (HTTP 403/429, sin conexión, etc.)
 
 ### Licenciamiento
 - Activación con código RSA-2048
@@ -79,7 +82,7 @@ Parte del ecosistema **OmniMargen**.
 | Notificaciones | WorkManager + NotificationManager |
 | DI | Hilt (Dagger) |
 | PDF | PdfDocument nativo |
-| Auto-Update | GitHub API + DownloadManager |
+| Auto-Update | GitHub API + DownloadManager + User-Agent |
 | Licencias | RSA-2048 + TOG Platform |
 | Lenguaje | Kotlin |
 
@@ -225,10 +228,11 @@ app/src/main/java/com/omnimargen/omniserv/
 ## Instalación
 
 ### Para el usuario final
-1. Descargar APK desde [Releases](https://github.com/betobeto00/OmniServ/releases)
+1. Descargar APK desde [Releases](https://github.com/betobeto00/OmniServ/releases) o desde la sección de Actualizaciones de la app
 2. Instalar en el teléfono (permitir fuentes desconocidas)
 3. Abrir la app e ingresar código de activación
 4. La app chequea actualizaciones automáticamente al abrir
+5. Descarga de 7 días gratis disponible desde [Google Drive](https://drive.google.com/drive/folders/1pERlTnQN8GAOnajv95v9I7m8i7vsnu0O?usp=sharing)
 
 ### Compilación (desarrollador)
 ```bash
@@ -279,10 +283,11 @@ Ver [LICENSE_SYSTEM.md](LICENSE_SYSTEM.md) para documentación completa sobre:
 
 ## Requisitos
 
-- Android 8.0+ (API 26)
+- Android 7.0+ (API 24)
 - Gradle 8.x
 - Kotlin 2.0+
 - JDK 17
+- Icono: Logo OmniServ (todas las densidades mipmap)
 
 ## Licencia
 

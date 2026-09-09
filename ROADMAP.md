@@ -214,12 +214,15 @@
 - [x] `UpdateViewModel` - manejo de estado
 - [x] Chequeo automático al abrir la app
 - [x] Botón manual en HomeScreen
+- [x] User-Agent header para GitHub API
+- [x] Manejo de errores HTTP (403/429/500) con mensajes descriptivos
+- [x] HttpURLConnection con response code checking
 
 ### Release
 - [x] `release.ps1` - script de release automatizado
-- [ ] GitHub repo configurado: `betobeto00/OmniServ` (pendiente)
-- [ ] Keystore de release configurado (pendiente)
-- [ ] Tag v1.0 + Release v1.0 publicada (pendiente)
+- [x] GitHub repo configurado: `betobeto00/OmniServ`
+- [x] Keystore de release configurado (debug keystore)
+- [x] Tags v1.0 → v1.1.4 publicados con APK
 
 ---
 
@@ -227,8 +230,8 @@
 **Estado: COMPLETADO**
 
 ### Branding
-- [x] Logo OmniServ (Conexión de Servicios - hexágono con "OS")
-- [x] Adaptive icon (todas las densidades)
+- [x] Logo OmniServ en todas las densidades mipmap (mdpi → xxxhdpi)
+- [x] Icono reemplazado: logo real de OmniServ (PNG desde drawable/logo_con_fondo_blanco.png)
 - [x] Splash screen
 - [x] Colores Omnimargen en Theme.kt
 
@@ -263,6 +266,19 @@
 | Fase 8 - Notificaciones+PDF | COMPLETADO |
 | Fase 9 - Auto-Update | COMPLETADO |
 | Fase 10 - Branding | COMPLETADO |
+
+---
+
+## Versiones Publicadas
+
+| Versión | Fecha | Cambios |
+|---------|-------|---------|
+| v1.0 | Jul 2025 | Versión inicial |
+| v1.1.0 | Ago 2025 | Service types abiertos, notificaciones |
+| v1.1.1 | Sep 2025 | Operator payment summary, invoice numbers |
+| v1.1.2 | Sep 2025 | Fix update checks, trial period |
+| v1.1.3 | Sep 2025 | User-Agent fix, icono OmniServ |
+| v1.1.4 | Sep 2025 | HTTP error handling mejorado |
 
 ---
 

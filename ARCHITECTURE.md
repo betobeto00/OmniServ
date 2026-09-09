@@ -711,10 +711,29 @@ HomeScreen (al abrir)
 UpdateViewModel.checkForUpdate()
     │
     ▼
-GET https://api.github.com/repos/betobeto00/OmniServ/releases/latest
+UpdateChecker.checkForUpdate()
     │
-    ├─ Nueva versión → UpdateDialog → DownloadManager → PackageInstaller
-    └─ Sin actualización → no hacer nada
+    ├── HttpURLConnection + User-Agent: OmniServ/Android
+    ├── connectTimeout: 10s, readTimeout: 10s
+    ├── GET https://api.github.com/repos/betobeto00/OmniServ/releases/latest
+    │
+    ├── HTTP 200 → parse JSON → comparar versiones
+    │   ├── Nueva versión → UpdateInfo(versionName, apkUrl, ...)
+    │   └── Misma versión → null (estás al día)
+    │
+    ├── HTTP 403 → IOException("HTTP 403: rate limit")
+    ├── HTTP 429 → IOException("HTTP 429: too many requests")
+    ├── Timeout → IOException("timeout")
+    └── Sin red → IOException("Unable to resolve host")
+    │
+    ▼
+UpdateViewModel (maneja errores con mensajes específicos)
+    │
+    ├── UpdateInfo → UpdateDialog → DownloadManager → PackageInstaller
+    ├── Error de red → "Sin conexión. Verifica tu red."
+    ├── HTTP 403 → "Límite de solicitudes de GitHub."
+    ├── HTTP 429 → "Demasiadas solicitudes. Espera unos minutos."
+    └── Otro error → "Error: [detalle del HTTP status]"
 ```
 
 ---
