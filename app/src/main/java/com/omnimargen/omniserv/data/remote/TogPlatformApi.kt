@@ -1,14 +1,14 @@
 package com.omnimargen.omniserv.data.remote
 
-import android.util.Log
+import com.omnimargen.omniserv.BuildConfig
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
+import okhttp3.MediaType.Companion.toMediaType
+import okhttp3.OkHttpClient
+import okhttp3.Request
+import okhttp3.RequestBody.Companion.toRequestBody
 import org.json.JSONObject
-import java.io.BufferedReader
-import java.io.InputStreamReader
-import java.io.OutputStreamWriter
-import java.net.HttpURLConnection
-import java.net.URL
+import java.util.concurrent.TimeUnit
 import javax.inject.Inject
 import javax.inject.Singleton
 
@@ -18,6 +18,86 @@ class TogPlatformApi @Inject constructor() {
     companion object {
         private const val TAG = "TogPlatformApi"
         private const val BASE_URL = "https://tog-platform-production.up.railway.app"
+
+        private const val CONNECT_TIMEOUT_MS = 10_000L
+        private const val READ_TIMEOUT_MS = 30_000L
+        private const val WRITE_TIMEOUT_MS = 15_000L
+        private const val MAX_RETRIES = 3
+        private const val BASE_BACKOFF_MS = 1_000L
+    }
+
+    private val jsonMediaType = "application/json; charset=utf-8".toMediaType()
+
+    private val client: OkHttpClient by lazy {
+        val builder = OkHttpClient.Builder()
+            .connectTimeout(CONNECT_TIMEOUT_MS, TimeUnit.MILLISECONDS)
+            .readTimeout(READ_TIMEOUT_MS, TimeUnit.MILLISECONDS)
+            .writeTimeout(WRITE_TIMEOUT_MS, TimeUnit.MILLISECONDS)
+            .retryOnConnectionFailure(false)
+
+        configureCertificatePinning(builder)
+
+        builder.build()
+    }
+
+    private fun configureCertificatePinning(builder: OkHttpClient.Builder) {
+        try {
+            val certificatePinner = okhttp3.CertificatePinner.Builder()
+                .add(
+                    "tog-platform-production.up.railway.app",
+                    "sha256/AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=",
+                )
+                .build()
+            builder.certificatePinner(certificatePinner)
+        } catch (e: Exception) {
+            if (BuildConfig.DEBUG) android.util.Log.w(TAG, "Certificate pinning setup failed: ${e.message}")
+        }
+    }
+
+    private suspend fun executeWithRetry(
+        retries: Int = MAX_RETRIES,
+        block: suspend () -> JSONObject,
+    ): JSONObject {
+        var lastException: Exception? = null
+        repeat(retries) { attempt ->
+            try {
+                return block()
+            } catch (e: Exception) {
+                lastException = e
+                if (attempt < retries - 1) {
+                    val backoff = BASE_BACKOFF_MS * (1L shl attempt)
+                    if (BuildConfig.DEBUG) android.util.Log.d(TAG, "Retry ${attempt + 1}/$retries after ${backoff}ms")
+                    Thread.sleep(backoff)
+                }
+            }
+        }
+        throw lastException ?: Exception("Max retries exceeded")
+    }
+
+    private fun postJson(url: String, body: JSONObject, headers: Map<String, String> = emptyMap()): JSONObject {
+        val request = Request.Builder()
+            .url(url)
+            .post(body.toString().toRequestBody(jsonMediaType))
+            .apply { headers.forEach { (k, v) -> addHeader(k, v) } }
+            .build()
+
+        client.newCall(request).execute().use { response ->
+            val responseBody = response.body?.string() ?: "{}"
+            return JSONObject(responseBody)
+        }
+    }
+
+    private fun getJson(url: String, headers: Map<String, String> = emptyMap()): JSONObject {
+        val request = Request.Builder()
+            .url(url)
+            .get()
+            .apply { headers.forEach { (k, v) -> addHeader(k, v) } }
+            .build()
+
+        client.newCall(request).execute().use { response ->
+            val responseBody = response.body?.string() ?: "{}"
+            return JSONObject(responseBody)
+        }
     }
 
     data class LicenseResponse(
@@ -53,16 +133,7 @@ class TogPlatformApi @Inject constructor() {
         email: String,
         deviceFingerprint: String
     ): LicenseResponse = withContext(Dispatchers.IO) {
-        Log.d(TAG, "registerEmpresa called with: nombre=$nombre, pais=$pais, documento=$documento, email=$email")
         try {
-            val url = URL("$BASE_URL/api/empresas/register")
-            Log.d(TAG, "Connecting to: $url")
-            val connection = url.openConnection() as HttpURLConnection
-
-            connection.requestMethod = "POST"
-            connection.setRequestProperty("Content-Type", "application/json")
-            connection.doOutput = true
-
             val body = JSONObject().apply {
                 put("nombre", nombre)
                 put("pais", pais)
@@ -71,22 +142,11 @@ class TogPlatformApi @Inject constructor() {
                 put("device_fingerprint", deviceFingerprint)
             }
 
-            OutputStreamWriter(connection.outputStream).use { writer ->
-                writer.write(body.toString())
-                writer.flush()
+            val json = executeWithRetry {
+                postJson("$BASE_URL/api/empresas/register", body)
             }
 
-            val responseCode = connection.responseCode
-            val responseBody = if (responseCode in 200..299) {
-                BufferedReader(InputStreamReader(connection.inputStream)).use { it.readText() }
-            } else {
-                BufferedReader(InputStreamReader(connection.errorStream)).use { it.readText() }
-            }
-
-            Log.d(TAG, "Register response code: $responseCode, body: $responseBody")
-
-            val json = JSONObject(responseBody)
-            if (responseCode in 200..299 && json.optBoolean("success", false)) {
+            if (json.optBoolean("success", false)) {
                 val data = json.getJSONObject("data")
                 LicenseResponse(
                     success = true,
@@ -103,77 +163,41 @@ class TogPlatformApi @Inject constructor() {
                 )
             }
         } catch (e: Exception) {
-            Log.e(TAG, "Error registering empresa", e)
-            Log.e(TAG, "Exception type: ${e.javaClass.simpleName}")
-            Log.e(TAG, "Exception message: ${e.message}")
-            Log.e(TAG, "Exception cause: ${e.cause}")
-            LicenseResponse(
-                success = false,
-                error = "Error de conexión: ${e.message ?: e.javaClass.simpleName}"
-            )
+            if (BuildConfig.DEBUG) android.util.Log.e(TAG, "Error registering empresa: ${e.message}")
+            LicenseResponse(success = false, error = "Error de conexión")
         }
     }
 
     suspend fun checkPaymentStatus(empresaId: String, apiKey: String): LicenseResponse = withContext(Dispatchers.IO) {
         try {
-            val url = URL("$BASE_URL/api/empresas/$empresaId/payment-status")
-            val connection = url.openConnection() as HttpURLConnection
-
-            connection.requestMethod = "GET"
-            connection.setRequestProperty("x-api-key", apiKey)
-
-            val responseCode = connection.responseCode
-            val responseBody = if (responseCode in 200..299) {
-                BufferedReader(InputStreamReader(connection.inputStream)).use { it.readText() }
-            } else {
-                BufferedReader(InputStreamReader(connection.errorStream)).use { it.readText() }
+            val json = executeWithRetry {
+                getJson(
+                    "$BASE_URL/api/empresas/$empresaId/payment-status",
+                    mapOf("x-api-key" to apiKey),
+                )
             }
 
-            Log.d(TAG, "Payment status response code: $responseCode, body: $responseBody")
-
-            val json = JSONObject(responseBody)
             LicenseResponse(
-                success = responseCode in 200..299,
+                success = true,
                 paymentConfirmed = json.optBoolean("payment_confirmed", false),
-                error = if (responseCode !in 200..299) json.optString("error") else null
+                error = null
             )
         } catch (e: Exception) {
-            Log.e(TAG, "Error checking payment status", e)
-            LicenseResponse(
-                success = false,
-                paymentConfirmed = false,
-                error = "Error de conexión: ${e.message}"
-            )
+            if (BuildConfig.DEBUG) android.util.Log.e(TAG, "Error checking payment: ${e.message}")
+            LicenseResponse(success = false, paymentConfirmed = false, error = "Error de conexión")
         }
     }
 
-    /**
-     * Descarga la licencia activa de la empresa. Envía SIEMPRE el fingerprint del
-     * dispositivo: el servidor vincula la licencia al primer teléfono que la
-     * reclama y rechaza (DEVICE_MISMATCH) a cualquier otro.
-     */
     suspend fun getLicense(empresaId: String, apiKey: String, deviceFingerprint: String): LicenseResponse = withContext(Dispatchers.IO) {
         try {
-            val url = URL("$BASE_URL/api/empresas/$empresaId/licencia")
-            val connection = url.openConnection() as HttpURLConnection
-
-            connection.requestMethod = "GET"
-            connection.setRequestProperty("x-api-key", apiKey)
-            connection.setRequestProperty("x-device-fingerprint", deviceFingerprint)
-
-            val responseCode = connection.responseCode
-            val responseBody = if (responseCode in 200..299) {
-                BufferedReader(InputStreamReader(connection.inputStream)).use { it.readText() }
-            } else {
-                BufferedReader(InputStreamReader(connection.errorStream)).use { it.readText() }
+            val json = executeWithRetry {
+                getJson(
+                    "$BASE_URL/api/empresas/$empresaId/licencia",
+                    mapOf("x-api-key" to apiKey, "x-device-fingerprint" to deviceFingerprint),
+                )
             }
 
-            Log.d(TAG, "Get license response code: $responseCode, body: $responseBody")
-
-            val json = JSONObject(responseBody)
-            if (responseCode in 200..299 && json.optBoolean("success", false)) {
-                // Formato de tog-platform: { success, licencia: { id, cliente, expira,
-                // version, machineId, modules, emitida, firma } }
+            if (json.optBoolean("success", false)) {
                 val licencia = json.getJSONObject("licencia")
                 LicenseResponse(
                     success = true,
@@ -194,78 +218,43 @@ class TogPlatformApi @Inject constructor() {
                 )
             }
         } catch (e: Exception) {
-            Log.e(TAG, "Error getting license", e)
-            LicenseResponse(
-                success = false,
-                error = "Error de conexión: ${e.message}"
-            )
+            if (BuildConfig.DEBUG) android.util.Log.e(TAG, "Error getting license: ${e.message}")
+            LicenseResponse(success = false, error = "Error de conexión")
         }
     }
 
     suspend fun getServerTime(): Long = withContext(Dispatchers.IO) {
         try {
-            val url = URL("$BASE_URL/api/time")
-            val connection = url.openConnection() as HttpURLConnection
-            connection.requestMethod = "GET"
-
-            val responseCode = connection.responseCode
-            val responseBody = BufferedReader(InputStreamReader(connection.inputStream)).use { it.readText() }
-
-            val json = JSONObject(responseBody)
+            val json = executeWithRetry { getJson("$BASE_URL/api/time") }
             json.optLong("server_time", System.currentTimeMillis())
         } catch (e: Exception) {
-            Log.e(TAG, "Error getting server time", e)
+            if (BuildConfig.DEBUG) android.util.Log.e(TAG, "Error getting server time: ${e.message}")
             System.currentTimeMillis()
         }
     }
 
     suspend fun healthCheck(): Boolean = withContext(Dispatchers.IO) {
         try {
-            val url = URL("$BASE_URL/api/health")
-            val connection = url.openConnection() as HttpURLConnection
-            connection.requestMethod = "GET"
-
-            val responseCode = connection.responseCode
-            val responseBody = BufferedReader(InputStreamReader(connection.inputStream)).use { it.readText() }
-
-            val json = JSONObject(responseBody)
-            responseCode in 200..299 && json.optBoolean("ok", false)
+            val json = getJson("$BASE_URL/api/health")
+            json.optBoolean("ok", false)
         } catch (e: Exception) {
-            Log.e(TAG, "Health check failed", e)
+            if (BuildConfig.DEBUG) android.util.Log.e(TAG, "Health check failed: ${e.message}")
             false
         }
     }
 
     suspend fun loginUser(email: String, password: String): AuthResponse = withContext(Dispatchers.IO) {
         try {
-            val url = URL("$BASE_URL/api/auth/login")
-            val connection = url.openConnection() as HttpURLConnection
-
-            connection.requestMethod = "POST"
-            connection.setRequestProperty("Content-Type", "application/json")
-            connection.doOutput = true
-
             val body = JSONObject().apply {
                 put("email", email)
                 put("password", password)
             }
 
-            OutputStreamWriter(connection.outputStream).use { writer ->
-                writer.write(body.toString())
-                writer.flush()
+            val json = executeWithRetry {
+                postJson("$BASE_URL/api/auth/login", body)
             }
 
-            val responseCode = connection.responseCode
-            val responseBody = if (responseCode in 200..299) {
-                BufferedReader(InputStreamReader(connection.inputStream)).use { it.readText() }
-            } else {
-                BufferedReader(InputStreamReader(connection.errorStream)).use { it.readText() }
-            }
-
-            Log.d(TAG, "Login response code: $responseCode, body: $responseBody")
-
-            val json = JSONObject(responseBody)
-            if (responseCode in 200..299 && json.optBoolean("success", false)) {
+            if (json.optBoolean("success", false)) {
                 val user = json.getJSONObject("user")
                 AuthResponse(
                     success = true,
@@ -283,11 +272,8 @@ class TogPlatformApi @Inject constructor() {
                 )
             }
         } catch (e: Exception) {
-            Log.e(TAG, "Error logging in", e)
-            AuthResponse(
-                success = false,
-                error = "Error de conexión: ${e.message ?: e.javaClass.simpleName}"
-            )
+            if (BuildConfig.DEBUG) android.util.Log.e(TAG, "Error logging in: ${e.message}")
+            AuthResponse(success = false, error = "Error de conexión")
         }
     }
 
@@ -299,13 +285,6 @@ class TogPlatformApi @Inject constructor() {
         documento: String
     ): AuthResponse = withContext(Dispatchers.IO) {
         try {
-            val url = URL("$BASE_URL/api/auth/register")
-            val connection = url.openConnection() as HttpURLConnection
-
-            connection.requestMethod = "POST"
-            connection.setRequestProperty("Content-Type", "application/json")
-            connection.doOutput = true
-
             val body = JSONObject().apply {
                 put("email", email)
                 put("password", password)
@@ -314,22 +293,11 @@ class TogPlatformApi @Inject constructor() {
                 put("documento", documento)
             }
 
-            OutputStreamWriter(connection.outputStream).use { writer ->
-                writer.write(body.toString())
-                writer.flush()
+            val json = executeWithRetry {
+                postJson("$BASE_URL/api/auth/register", body)
             }
 
-            val responseCode = connection.responseCode
-            val responseBody = if (responseCode in 200..299) {
-                BufferedReader(InputStreamReader(connection.inputStream)).use { it.readText() }
-            } else {
-                BufferedReader(InputStreamReader(connection.errorStream)).use { it.readText() }
-            }
-
-            Log.d(TAG, "Register response code: $responseCode, body: $responseBody")
-
-            val json = JSONObject(responseBody)
-            if (responseCode in 200..299 && json.optBoolean("success", false)) {
+            if (json.optBoolean("success", false)) {
                 val user = json.getJSONObject("user")
                 AuthResponse(
                     success = true,
@@ -346,33 +314,21 @@ class TogPlatformApi @Inject constructor() {
                 )
             }
         } catch (e: Exception) {
-            Log.e(TAG, "Error registering user", e)
-            AuthResponse(
-                success = false,
-                error = "Error de conexión: ${e.message ?: e.javaClass.simpleName}"
-            )
+            if (BuildConfig.DEBUG) android.util.Log.e(TAG, "Error registering: ${e.message}")
+            AuthResponse(success = false, error = "Error de conexión")
         }
     }
 
     suspend fun getUserProfile(token: String): AuthResponse = withContext(Dispatchers.IO) {
         try {
-            val url = URL("$BASE_URL/api/user/profile")
-            val connection = url.openConnection() as HttpURLConnection
-
-            connection.requestMethod = "GET"
-            connection.setRequestProperty("Authorization", "Bearer $token")
-
-            val responseCode = connection.responseCode
-            val responseBody = if (responseCode in 200..299) {
-                BufferedReader(InputStreamReader(connection.inputStream)).use { it.readText() }
-            } else {
-                BufferedReader(InputStreamReader(connection.errorStream)).use { it.readText() }
+            val json = executeWithRetry {
+                getJson(
+                    "$BASE_URL/api/user/profile",
+                    mapOf("Authorization" to "Bearer $token"),
+                )
             }
 
-            Log.d(TAG, "Profile response code: $responseCode, body: $responseBody")
-
-            val json = JSONObject(responseBody)
-            if (responseCode in 200..299 && json.optBoolean("success", false)) {
+            if (json.optBoolean("success", false)) {
                 val user = json.getJSONObject("user")
                 val empresa = json.optJSONObject("empresa")
                 AuthResponse(
@@ -390,11 +346,8 @@ class TogPlatformApi @Inject constructor() {
                 )
             }
         } catch (e: Exception) {
-            Log.e(TAG, "Error getting profile", e)
-            AuthResponse(
-                success = false,
-                error = "Error de conexión: ${e.message ?: e.javaClass.simpleName}"
-            )
+            if (BuildConfig.DEBUG) android.util.Log.e(TAG, "Error getting profile: ${e.message}")
+            AuthResponse(success = false, error = "Error de conexión")
         }
     }
 }

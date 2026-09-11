@@ -8,7 +8,7 @@ data class ActivationUiState(
     val authStep: AuthStep = AuthStep.EMAIL,
     // User data
     val nombre: String = "",
-    val pais: String = "Venezuela",
+    val pais: String = "",
     val documento: String = "",
     val email: String = "",
     val password: String = "",

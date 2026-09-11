@@ -20,10 +20,6 @@ object SecurityUtils {
         return when {
             trimmed.isEmpty() -> ValidationResult(false, "El nombre es requerido")
             trimmed.length > MAX_NAME_LENGTH -> ValidationResult(false, "El nombre excede $MAX_NAME_LENGTH caracteres")
-            trimmed.contains("<script", ignoreCase = true) -> ValidationResult(false, "Nombre contiene caracteres no válidos")
-            trimmed.contains("INSERT", ignoreCase = true) -> ValidationResult(false, "Nombre contiene caracteres no válidos")
-            trimmed.contains("DELETE", ignoreCase = true) -> ValidationResult(false, "Nombre contiene caracteres no válidos")
-            trimmed.contains("DROP", ignoreCase = true) -> ValidationResult(false, "Nombre contiene caracteres no válidos")
             else -> ValidationResult(true)
         }
     }
@@ -43,7 +39,6 @@ object SecurityUtils {
         return when {
             trimmed.isEmpty() -> ValidationResult(false, "El documento es requerido")
             trimmed.length > MAX_DOCUMENT_LENGTH -> ValidationResult(false, "El documento excede $MAX_DOCUMENT_LENGTH caracteres")
-            trimmed.contains("<script", ignoreCase = true) -> ValidationResult(false, "Documento contiene caracteres no válidos")
             else -> ValidationResult(true)
         }
     }
@@ -56,14 +51,6 @@ object SecurityUtils {
             !Patterns.EMAIL_ADDRESS.matcher(trimmed).matches() -> ValidationResult(false, "El email no es válido")
             else -> ValidationResult(true)
         }
-    }
-
-    fun sanitizeInput(input: String): String {
-        return input.trim()
-            .replace("<", "&lt;")
-            .replace(">", "&gt;")
-            .replace("\"", "&quot;")
-            .replace("'", "&#39;")
     }
 
     fun validateTimeDrift(localTimeMs: Long, serverTimeMs: Long): ValidationResult {

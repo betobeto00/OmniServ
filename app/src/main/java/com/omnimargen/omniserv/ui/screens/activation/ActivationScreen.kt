@@ -1,3 +1,5 @@
+@file:OptIn(ExperimentalMaterial3Api::class)
+
 package com.omnimargen.omniserv.ui.screens.activation
 
 import android.content.Context
@@ -11,6 +13,7 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
@@ -31,6 +34,10 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
+import androidx.compose.material3.ExposedDropdownMenuBox
+import androidx.compose.material3.ExposedDropdownMenuDefaults
+import androidx.compose.material3.DropdownMenuItem
+import androidx.compose.material3.MenuAnchorType
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
@@ -50,6 +57,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.omnimargen.omniserv.R
+import com.omnimargen.omniserv.data.Countries
 import com.omnimargen.omniserv.domain.model.LicenseStatus
 import com.omnimargen.omniserv.ui.components.CrixtoPaymentButton
 
@@ -110,6 +118,7 @@ fun ActivationScreen(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(padding)
+                .imePadding()
                 .padding(24.dp)
                 .verticalScroll(rememberScrollState()),
             horizontalAlignment = Alignment.CenterHorizontally
@@ -268,6 +277,8 @@ fun AuthStep(
         modifier = Modifier.fillMaxWidth(),
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
+        var expandedPais by remember { mutableStateOf(false) }
+
         when (uiState.authStep) {
             AuthStep.EMAIL -> {
                 Text(
@@ -379,14 +390,36 @@ fun AuthStep(
 
                 Spacer(modifier = Modifier.height(12.dp))
 
-                OutlinedTextField(
-                    value = uiState.pais,
-                    onValueChange = { viewModel.updatePais(it) },
-                    modifier = Modifier.fillMaxWidth(),
-                    label = { Text("Pais") },
-                    singleLine = true,
-                    enabled = !uiState.isLoading
-                )
+                ExposedDropdownMenuBox(
+                    expanded = expandedPais,
+                    onExpandedChange = { expandedPais = it }
+                ) {
+                    OutlinedTextField(
+                        value = Countries.getNameByCode(uiState.pais),
+                        onValueChange = {},
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .menuAnchor(MenuAnchorType.PrimaryNotEditable),
+                        label = { Text("País") },
+                        readOnly = true,
+                        trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expandedPais) },
+                        enabled = !uiState.isLoading
+                    )
+                    ExposedDropdownMenu(
+                        expanded = expandedPais,
+                        onDismissRequest = { expandedPais = false }
+                    ) {
+                        Countries.list.forEach { country ->
+                            DropdownMenuItem(
+                                text = { Text(country.name) },
+                                onClick = {
+                                    viewModel.updatePais(country.code)
+                                    expandedPais = false
+                                }
+                            )
+                        }
+                    }
+                }
 
                 Spacer(modifier = Modifier.height(12.dp))
 
@@ -404,7 +437,7 @@ fun AuthStep(
                 Button(
                     onClick = { viewModel.submitPassword() },
                     modifier = Modifier.fillMaxWidth(),
-                    enabled = !uiState.isLoading && uiState.nombre.isNotBlank()
+                    enabled = !uiState.isLoading && uiState.nombre.isNotBlank() && uiState.pais.isNotBlank()
                 ) {
                     if (uiState.isLoading) {
                         CircularProgressIndicator(

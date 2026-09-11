@@ -1,6 +1,8 @@
 package com.omnimargen.omniserv.license
 
 import android.util.Base64
+import android.util.Log
+import com.omnimargen.omniserv.BuildConfig
 import com.omnimargen.omniserv.domain.model.License
 import com.omnimargen.omniserv.domain.model.LicenseStatus
 import org.json.JSONObject
@@ -10,15 +12,24 @@ import java.security.spec.X509EncodedKeySpec
 import javax.inject.Inject
 import javax.inject.Singleton
 
+sealed class SignatureResult {
+    data object Valid : SignatureResult()
+    data object InvalidSignature : SignatureResult()
+    data object MalformedData : SignatureResult()
+    data object InvalidKey : SignatureResult()
+    data class Error(val message: String) : SignatureResult()
+}
+
 @Singleton
 class LicenseValidator @Inject constructor() {
 
     companion object {
+        private const val TAG = "LicenseValidator"
         private const val GRACE_PERIOD_HOURS = 48
         private const val GRACE_PERIOD_MS = GRACE_PERIOD_HOURS * 60 * 60 * 1000L
     }
 
-    fun validateSignature(license: License, publicKeyPem: String): Boolean {
+    fun validateSignature(license: License, publicKeyPem: String): SignatureResult {
         return try {
             val publicKey = parsePublicKey(publicKeyPem)
             val signature = Signature.getInstance("SHA256withRSA")
@@ -34,9 +45,17 @@ class LicenseValidator @Inject constructor() {
             signature.update(dataToVerify.toByteArray())
 
             val signatureBytes = Base64.decode(license.firma, Base64.DEFAULT)
-            signature.verify(signatureBytes)
+            val isValid = signature.verify(signatureBytes)
+            if (isValid) SignatureResult.Valid else SignatureResult.InvalidSignature
+        } catch (e: java.security.spec.InvalidKeySpecException) {
+            if (BuildConfig.DEBUG) Log.e(TAG, "Invalid public key: ${e.message}")
+            SignatureResult.InvalidKey
+        } catch (e: java.security.SignatureException) {
+            if (BuildConfig.DEBUG) Log.e(TAG, "Signature verification error: ${e.message}")
+            SignatureResult.MalformedData
         } catch (e: Exception) {
-            false
+            if (BuildConfig.DEBUG) Log.e(TAG, "Signature validation error: ${e.message}")
+            SignatureResult.Error(e.message ?: "Error desconocido")
         }
     }
 
@@ -48,10 +67,20 @@ class LicenseValidator @Inject constructor() {
         return when {
             now < expiry -> LicenseStatus.Valid
             now < graceEnd -> {
-                val hoursRemaining = ((graceEnd - now) / (60 * 60 * 1000)).toInt()
-                LicenseStatus.GracePeriod(daysRemaining = hoursRemaining / 24)
+                val daysRemaining = kotlin.math.ceil((graceEnd - now).toDouble() / (24 * 60 * 60 * 1000)).toInt()
+                LicenseStatus.GracePeriod(daysRemaining = daysRemaining)
             }
             else -> LicenseStatus.Expired
+        }
+    }
+
+    fun validate(license: License, publicKeyPem: String): LicenseStatus {
+        return when (val sigResult = validateSignature(license, publicKeyPem)) {
+            is SignatureResult.Valid -> checkExpiration(license)
+            is SignatureResult.InvalidKey -> LicenseStatus.InvalidSignature
+            is SignatureResult.InvalidSignature -> LicenseStatus.InvalidSignature
+            is SignatureResult.MalformedData -> LicenseStatus.InvalidSignature
+            is SignatureResult.Error -> LicenseStatus.InvalidSignature
         }
     }
 

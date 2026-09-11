@@ -6,6 +6,7 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
@@ -107,6 +108,7 @@ fun ServiceFormScreen(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(padding)
+                .imePadding()
                 .padding(16.dp)
                 .verticalScroll(rememberScrollState())
         ) {
@@ -239,7 +241,7 @@ fun ServiceFormScreen(
                             onValueChange = { value ->
                                 selectedOperators = selectedOperators + (operator.id to value)
                             },
-                            modifier = Modifier.width(110.dp),
+                            modifier = Modifier.weight(1f),
                             label = { Text("Monto $") },
                             singleLine = true,
                             keyboardOptions = androidx.compose.foundation.text.KeyboardOptions(

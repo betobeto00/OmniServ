@@ -205,7 +205,7 @@ class ActivationViewModel @Inject constructor(
         try {
             val response = togPlatformApi.registerEmpresa(
                 nombre = state.nombre.ifBlank { state.email.substringBefore("@") },
-                pais = state.pais.trim().uppercase(),
+                pais = state.pais,
                 documento = state.documento.ifBlank { "N/A" },
                 email = state.email.trim().lowercase(),
                 deviceFingerprint = deviceFingerprint
