@@ -3,12 +3,19 @@ package com.omnimargen.omniserv.ui.screens.activation
 import com.omnimargen.omniserv.domain.model.LicenseStatus
 
 data class ActivationUiState(
-    // User data for registration
+    // Auth mode
+    val isLoginMode: Boolean = false, // false = registro, true = login
+    val authStep: AuthStep = AuthStep.EMAIL,
+    // User data
     val nombre: String = "",
     val pais: String = "Venezuela",
     val documento: String = "",
     val email: String = "",
-    // Registration state
+    val password: String = "",
+    // Auth state
+    val authToken: String? = null,
+    val userId: Int? = null,
+    // Empresa / registration state
     val isRegistered: Boolean = false,
     val empresaId: String? = null,
     val apiKey: String? = null,
@@ -20,5 +27,11 @@ data class ActivationUiState(
     val licenseStatus: LicenseStatus? = null,
     val error: String? = null,
     val activationSuccess: Boolean = false,
-    val currentStep: Int = 1 // 1: Register, 2: Payment, 3: Activated
+    val currentStep: Int = 1 // 1: Auth, 2: Payment, 3: Activated
 )
+
+enum class AuthStep {
+    EMAIL,      // Ingresar email (verificar si existe)
+    PASSWORD,   // Ingresar clave (login o registro)
+    REGISTER    // Completar datos (solo si es nuevo)
+}

@@ -51,7 +51,7 @@ Una sola licencia puede cubrir múltiples apps: TOG Admin + OmniServ + futuros m
          │
          ▼
 4. App llama a TOG Platform:
-   GET /api/empresas/:id/licencia
+   GET http://localhost:3001/api/empresas/:id/licencia
    Headers: { "x-api-key": "ak_xxxxxxxxxxxxxxxx" }
          │
          ▼
@@ -262,23 +262,9 @@ El usuario necesita:
 
 Solo **2 archivos** necesitan cambios para soportar OmniServ:
 
-**1. `tog-platform/src/sign.js` línea 6:**
-```js
-// ANTES:
-export const MODULE_IDS = ['comercializador', 'distribuidor', 'restaurant', 'productor', 'procesador', 'postventa', 'administracion', 'rrhh']
+### Estado actual (10-Sep-2026)
 
-// DESPUÉS:
-export const MODULE_IDS = ['comercializador', 'distribuidor', 'restaurant', 'productor', 'procesador', 'postventa', 'administracion', 'rrhh', 'omniserv']
-```
-
-**2. `tog-admin/src/shared/modules.ts` línea 7:**
-```ts
-// ANTES:
-export type ModuleId = 'comercializador' | 'distribuidor' | ...
-
-// DESPUÉS:
-export type ModuleId = 'comercializador' | 'distribuidor' | ... | 'omniserv'
-```
+`omniserv` **ya está incluido** en `MODULE_IDS` de `tog-platform/src/sign.js` (línea 6). No se necesitan cambios adicionales para habilitar el módulo OmniServ en el backend.
 
 ### Lo que NO necesita cambios
 
@@ -448,3 +434,5 @@ class LicenseGenerator @Inject constructor(
 | `GET` | `/api/empresas/:id/licencia` | api_key | Obtener licencia activa (desde app) |
 
 La app solo usa `GET /api/empresas/:id/licencia` con la api_key del usuario.
+
+> **Nota:** TOG Platform corre en el puerto **3001** (configurable via `PORT` en `.env`).

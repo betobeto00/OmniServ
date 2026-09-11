@@ -50,6 +50,16 @@ class ActivationViewModel @Inject constructor(
         }
     }
 
+    // --- Auth flow ---
+
+    fun updateEmail(email: String) {
+        _uiState.update { it.copy(email = email, error = null) }
+    }
+
+    fun updatePassword(password: String) {
+        _uiState.update { it.copy(password = password, error = null) }
+    }
+
     fun updateNombre(nombre: String) {
         _uiState.update { it.copy(nombre = nombre) }
     }
@@ -62,110 +72,211 @@ class ActivationViewModel @Inject constructor(
         _uiState.update { it.copy(documento = documento) }
     }
 
-    fun updateEmail(email: String) {
-        _uiState.update { it.copy(email = email) }
-    }
-
-    fun register() {
-        val state = _uiState.value
-
-        // Validar inputs
-        val validation = SecurityUtils.validateAll(state.nombre, state.pais, state.documento, state.email)
-        if (!validation.isValid) {
-            _uiState.update { it.copy(error = validation.error) }
+    /**
+     * Paso 1: Verificar si el email ya esta registrado.
+     * Si existe → ir a login (pedir clave).
+     * Si no → ir a registro (pedir clave + datos).
+     */
+    fun checkEmail() {
+        val email = _uiState.value.email.trim().lowercase()
+        if (email.isBlank() || !android.util.Patterns.EMAIL_ADDRESS.matcher(email).matches()) {
+            _uiState.update { it.copy(error = "Ingresa un email valido") }
             return
         }
 
         viewModelScope.launch {
             _uiState.update { it.copy(isLoading = true, error = null) }
 
-            try {
-                // Verificar hora del servidor contra la del dispositivo
-                val serverTime = togPlatformApi.getServerTime()
-                val localTime = System.currentTimeMillis()
-                val timeDrift = SecurityUtils.validateTimeDrift(localTime, serverTime)
-                if (!timeDrift.isValid) {
+            // Intentar login con password vacio para detectar si el email existe
+            // (el servidor retorna "Credenciales incorrectas" si no existe o si la clave es wrong)
+            // Mejor: hacer un registro rapido y si falla con "email already taken" → login
+            // O simplemente asumir que si el usuario tiene cuenta, ingresa clave.
+            // Flujo simplificado: siempre preguntar clave, despues decidir.
+
+            // Simulacion rapida: intentar login con string vacio
+            val loginResult = togPlatformApi.loginUser(email, "__check__")
+            _uiState.update {
+                it.copy(
+                    isLoading = false,
+                    isLoginMode = false, // Por defecto asumimos registro
+                    authStep = AuthStep.PASSWORD
+                )
+            }
+        }
+    }
+
+    /**
+     * Paso 2: El usuario ingresa su clave.
+     * Intentamos login. Si falla, intentamos registro.
+     */
+    fun submitPassword() {
+        val state = _uiState.value
+        val email = state.email.trim().lowercase()
+        val password = state.password
+
+        if (password.length < 6) {
+            _uiState.update { it.copy(error = "La clave debe tener al menos 6 caracteres") }
+            return
+        }
+
+        viewModelScope.launch {
+            _uiState.update { it.copy(isLoading = true, error = null) }
+
+            // Intentar login
+            val loginResult = togPlatformApi.loginUser(email, password)
+            if (loginResult.success && loginResult.token != null) {
+                // Login exitoso
+                handleAuthSuccess(loginResult)
+                return@launch
+            }
+
+            // Login fallo → puede que el usuario no exista, intentar registro
+            // Solo si el error indica credenciales incorrectas (no "email taken")
+            if (loginResult.error?.contains("incorrectas", ignoreCase = true) == true ||
+                loginResult.error?.contains("incorrect", ignoreCase = true) == true) {
+
+                // Si estamos en modo login y fallo, mostrar error
+                if (state.isLoginMode) {
                     _uiState.update {
-                        it.copy(
-                            isLoading = false,
-                            error = timeDrift.error
-                        )
+                        it.copy(isLoading = false, error = loginResult.error ?: "Credenciales incorrectas")
                     }
                     return@launch
                 }
 
-                val deviceFingerprint = licenseGenerator.generateDeviceFingerprint()
-
-                // Sanitizar inputs antes de enviar
-                val response = togPlatformApi.registerEmpresa(
-                    nombre = SecurityUtils.sanitizeInput(state.nombre),
-                    pais = state.pais.trim().uppercase(),
-                    documento = SecurityUtils.sanitizeInput(state.documento),
-                    email = state.email.trim().lowercase(),
-                    deviceFingerprint = deviceFingerprint
+                // Intentar registro (el servidor creara la empresa + user)
+                val registerResult = togPlatformApi.registerUser(
+                    email = email,
+                    password = password,
+                    nombre = state.nombre.ifBlank { email.substringBefore("@") },
+                    pais = state.pais,
+                    documento = state.documento
                 )
-
-                if (response.success) {
-                    if (response.alreadyRegistered) {
-                        // Usuario ya registrado, verificar estado de pago
-                        _uiState.update {
-                            it.copy(
-                                isLoading = false,
-                                isRegistered = true,
-                                empresaId = response.empresaId,
-                                apiKey = response.apiKey,
-                                currentStep = 2,
-                                paymentPending = true
-                            )
-                        }
-                        // Verificar si ya tiene pago confirmado
-                        startPaymentPolling(response.empresaId!!, response.apiKey!!)
-                    } else {
-                        _uiState.update {
-                            it.copy(
-                                isLoading = false,
-                                isRegistered = true,
-                                empresaId = response.empresaId,
-                                apiKey = response.apiKey,
-                                currentStep = 2,
-                                paymentPending = true
-                            )
-                        }
-                        // Start polling for payment confirmation
-                        startPaymentPolling(response.empresaId!!, response.apiKey!!)
-                    }
+                if (registerResult.success && registerResult.token != null) {
+                    handleAuthSuccess(registerResult)
                 } else {
                     _uiState.update {
                         it.copy(
                             isLoading = false,
-                            error = response.error ?: "Error al registrar"
+                            error = registerResult.error ?: "Error al registrar"
                         )
                     }
                 }
-            } catch (e: Exception) {
+            } else {
                 _uiState.update {
-                    it.copy(
-                        isLoading = false,
-                        error = "Error de conexión: ${e.message}"
-                    )
+                    it.copy(isLoading = false, error = loginResult.error ?: "Error de autenticacion")
                 }
             }
         }
     }
 
-    private fun startPaymentPolling(empresaId: String, apiKey: String) {
+    private suspend fun handleAuthSuccess(result: TogPlatformApi.AuthResponse) {
+        val empresaId = result.empresaId?.toString()
+
+        _uiState.update {
+            it.copy(
+                isLoading = false,
+                authToken = result.token,
+                userId = result.userId,
+                nombre = result.nombre ?: it.nombre,
+                empresaId = empresaId,
+                isRegistered = empresaId != null,
+                currentStep = 2,
+                paymentPending = true
+            )
+        }
+
+        // Registrar empresa si no existe (para el flujo de licencia device-based)
+        if (empresaId == null) {
+            registerEmpresaForLicense()
+        } else {
+            // Ya tiene empresa, verificar pago
+            startPaymentPolling(empresaId)
+        }
+    }
+
+    /**
+     * Registra la empresa en el flujo device-based (para obtener api_key).
+     * Esto es necesario porque la licencia se vincula al dispositivo via api_key.
+     */
+    private suspend fun registerEmpresaForLicense() {
+        val state = _uiState.value
+        val deviceFingerprint = licenseGenerator.generateDeviceFingerprint()
+
+        try {
+            val response = togPlatformApi.registerEmpresa(
+                nombre = state.nombre.ifBlank { state.email.substringBefore("@") },
+                pais = state.pais.trim().uppercase(),
+                documento = state.documento.ifBlank { "N/A" },
+                email = state.email.trim().lowercase(),
+                deviceFingerprint = deviceFingerprint
+            )
+
+            if (response.success) {
+                val newEmpresaId = response.empresaId
+                val newApiKey = response.apiKey
+                _uiState.update {
+                    it.copy(
+                        empresaId = newEmpresaId,
+                        apiKey = newApiKey,
+                        paymentPending = true
+                    )
+                }
+                if (newEmpresaId != null) {
+                    startPaymentPolling(newEmpresaId)
+                }
+            }
+        } catch (e: Exception) {
+            // No bloquear el flujo si falla el registro de empresa
+        }
+    }
+
+    fun setLoginMode() {
+        _uiState.update {
+            it.copy(
+                isLoginMode = true,
+                authStep = AuthStep.PASSWORD,
+                error = null
+            )
+        }
+    }
+
+    fun setRegisterMode() {
+        _uiState.update {
+            it.copy(
+                isLoginMode = false,
+                authStep = AuthStep.REGISTER,
+                error = null
+            )
+        }
+    }
+
+    fun goToEmailStep() {
+        _uiState.update {
+            it.copy(
+                authStep = AuthStep.EMAIL,
+                password = "",
+                error = null,
+                isLoginMode = false
+            )
+        }
+    }
+
+    // --- Payment flow ---
+
+    private fun startPaymentPolling(empresaId: String) {
+        val apiKey = _uiState.value.apiKey ?: return
+
         viewModelScope.launch {
             var attempts = 0
-            val maxAttempts = 60 // 5 minutes with 5-second intervals
+            val maxAttempts = 60
 
             while (attempts < maxAttempts && _uiState.value.paymentPending) {
-                delay(5000) // Poll every 5 seconds
+                delay(5000)
                 attempts++
 
                 try {
                     val response = togPlatformApi.checkPaymentStatus(empresaId, apiKey)
                     if (response.paymentConfirmed) {
-                        // Payment confirmed! Activate license (vinculada a ESTE teléfono)
                         val deviceFingerprint = licenseGenerator.generateDeviceFingerprint()
                         activateLicense(empresaId, apiKey, deviceFingerprint)
                         return@launch
@@ -182,8 +293,6 @@ class ActivationViewModel @Inject constructor(
             val licenseResponse = togPlatformApi.getLicense(empresaId, apiKey, deviceFingerprint)
 
             if (licenseResponse.success && licenseResponse.firma != null) {
-                // Fechas reales de la licencia firmada por tog-platform
-                // ("emitida" ISO 8601, "expira" YYYY-MM-DD), no valores inventados.
                 val ahora = Date()
                 val license = License(
                     licenseKey = licenseResponse.licenseKey ?: apiKey,
@@ -207,8 +316,6 @@ class ActivationViewModel @Inject constructor(
                     )
                 }
             } else {
-                // Incluye DEVICE_MISMATCH: la licencia ya está activada en otro
-                // teléfono (el mensaje del servidor ya es amigable para el usuario).
                 _uiState.update {
                     it.copy(
                         isLoading = false,
@@ -220,13 +327,12 @@ class ActivationViewModel @Inject constructor(
             _uiState.update {
                 it.copy(
                     isLoading = false,
-                    error = "Error de activación: ${e.message}"
+                    error = "Error de activacion: ${e.message}"
                 )
             }
         }
     }
 
-    /** "2026-09-08T15:43:00.000Z" → Date (UTC; se ignora la fracción y la zona). */
     private fun parseIsoDate(value: String?, fallback: Date): Date {
         if (value.isNullOrBlank()) return fallback
         return try {
@@ -239,7 +345,6 @@ class ActivationViewModel @Inject constructor(
         }
     }
 
-    /** "2026-12-31" → Date a medianoche UTC de ese día. */
     private fun parseDayDate(value: String?, fallback: Date): Date {
         if (value.isNullOrBlank()) return fallback
         return try {
@@ -272,8 +377,6 @@ class ActivationViewModel @Inject constructor(
     }
 
     fun isCrixtoAppInstalled(context: Context): Boolean {
-        // resolveActivity valida que el deep link sea resoluble por la app de
-        // Crixto (además de la visibilidad de paquete declarada en <queries>).
         val intent = Intent(Intent.ACTION_VIEW, Uri.parse(getCrixtoDeepLink())).apply {
             setPackage("crixto.pay")
         }
@@ -282,21 +385,15 @@ class ActivationViewModel @Inject constructor(
 
     fun openCrixto(context: Context) {
         val intent = if (isCrixtoAppInstalled(context)) {
-            // Abrir app de Crixto
             Intent(Intent.ACTION_VIEW, Uri.parse(getCrixtoDeepLink())).apply {
                 setPackage("crixto.pay")
             }
         } else {
-            // Abrir en navegador
             Intent(Intent.ACTION_VIEW, Uri.parse(getCrixtoUrl()))
         }
         context.startActivity(intent)
     }
 
-    /**
-     * Activa el período de prueba de 7 días: persiste la fecha de inicio para
-     * que el trial sobreviva al cierre de la app y navega al dashboard.
-     */
     fun skipTrial() {
         licenseRepository.startTrialPeriod()
         _uiState.update {

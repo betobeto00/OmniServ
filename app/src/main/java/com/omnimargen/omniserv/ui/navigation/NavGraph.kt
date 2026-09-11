@@ -100,6 +100,11 @@ fun OmniServNavGraph() {
                     },
                     onNavigateToLegal = {
                         navController.navigate("legal")
+                    },
+                    onNavigateToActivation = {
+                        navController.navigate("activation") {
+                            popUpTo(Screen.Home.route) { inclusive = true }
+                        }
                     }
                 )
             }
@@ -219,6 +224,14 @@ fun OmniServNavGraph() {
             composable("legal") {
                 LegalScreen(
                     onNavigateBack = { navController.popBackStack() }
+                )
+            }
+
+            composable("activation") {
+                com.omnimargen.omniserv.ui.screens.activation.ActivationScreen(
+                    onActivationSuccess = {
+                        navController.popBackStack()
+                    }
                 )
             }
         }

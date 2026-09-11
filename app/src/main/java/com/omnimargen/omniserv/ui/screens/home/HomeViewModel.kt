@@ -2,7 +2,9 @@ package com.omnimargen.omniserv.ui.screens.home
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.omnimargen.omniserv.domain.model.LicenseStatus
 import com.omnimargen.omniserv.domain.model.ServiceStatus
+import com.omnimargen.omniserv.domain.usecase.license.GetLicenseStatusUseCase
 import com.omnimargen.omniserv.domain.usecase.service.GetPendingServicesUseCase
 import com.omnimargen.omniserv.domain.usecase.service.GetServicesUseCase
 import com.omnimargen.omniserv.domain.usecase.service.GetUpcomingServicesUseCase
@@ -20,7 +22,8 @@ import javax.inject.Inject
 class HomeViewModel @Inject constructor(
     private val getPendingServicesUseCase: GetPendingServicesUseCase,
     private val getUpcomingServicesUseCase: GetUpcomingServicesUseCase,
-    private val getServicesUseCase: GetServicesUseCase
+    private val getServicesUseCase: GetServicesUseCase,
+    private val getLicenseStatusUseCase: GetLicenseStatusUseCase
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(HomeUiState())
@@ -28,6 +31,27 @@ class HomeViewModel @Inject constructor(
 
     init {
         loadData()
+        loadLicenseStatus()
+    }
+
+    private fun loadLicenseStatus() {
+        viewModelScope.launch {
+            val status = getLicenseStatusUseCase()
+            when (status) {
+                is LicenseStatus.TrialPeriod -> _uiState.update {
+                    it.copy(isTrial = true, trialDaysRemaining = status.daysRemaining)
+                }
+                is LicenseStatus.Valid -> _uiState.update {
+                    it.copy(isTrial = false, trialDaysRemaining = 0)
+                }
+                is LicenseStatus.GracePeriod -> _uiState.update {
+                    it.copy(isTrial = false, trialDaysRemaining = 0)
+                }
+                else -> _uiState.update {
+                    it.copy(isTrial = false, trialDaysRemaining = 0)
+                }
+            }
+        }
     }
 
     private fun loadData() {

@@ -35,6 +35,17 @@ class TogPlatformApi @Inject constructor() {
         val alreadyRegistered: Boolean = false
     )
 
+    data class AuthResponse(
+        val success: Boolean,
+        val token: String? = null,
+        val userId: Int? = null,
+        val email: String? = null,
+        val nombre: String? = null,
+        val empresaId: Int? = null,
+        val paymentStatus: String? = null,
+        val error: String? = null
+    )
+
     suspend fun registerEmpresa(
         nombre: String,
         pais: String,
@@ -222,6 +233,168 @@ class TogPlatformApi @Inject constructor() {
         } catch (e: Exception) {
             Log.e(TAG, "Health check failed", e)
             false
+        }
+    }
+
+    suspend fun loginUser(email: String, password: String): AuthResponse = withContext(Dispatchers.IO) {
+        try {
+            val url = URL("$BASE_URL/api/auth/login")
+            val connection = url.openConnection() as HttpURLConnection
+
+            connection.requestMethod = "POST"
+            connection.setRequestProperty("Content-Type", "application/json")
+            connection.doOutput = true
+
+            val body = JSONObject().apply {
+                put("email", email)
+                put("password", password)
+            }
+
+            OutputStreamWriter(connection.outputStream).use { writer ->
+                writer.write(body.toString())
+                writer.flush()
+            }
+
+            val responseCode = connection.responseCode
+            val responseBody = if (responseCode in 200..299) {
+                BufferedReader(InputStreamReader(connection.inputStream)).use { it.readText() }
+            } else {
+                BufferedReader(InputStreamReader(connection.errorStream)).use { it.readText() }
+            }
+
+            Log.d(TAG, "Login response code: $responseCode, body: $responseBody")
+
+            val json = JSONObject(responseBody)
+            if (responseCode in 200..299 && json.optBoolean("success", false)) {
+                val user = json.getJSONObject("user")
+                AuthResponse(
+                    success = true,
+                    token = json.getString("token"),
+                    userId = user.optInt("id"),
+                    email = user.optString("email"),
+                    nombre = user.optString("nombre"),
+                    empresaId = user.optInt("empresa_id").takeIf { it > 0 },
+                    paymentStatus = user.optString("payment_status")
+                )
+            } else {
+                AuthResponse(
+                    success = false,
+                    error = json.optString("message").ifEmpty { json.optString("error", "Credenciales incorrectas") }
+                )
+            }
+        } catch (e: Exception) {
+            Log.e(TAG, "Error logging in", e)
+            AuthResponse(
+                success = false,
+                error = "Error de conexión: ${e.message ?: e.javaClass.simpleName}"
+            )
+        }
+    }
+
+    suspend fun registerUser(
+        email: String,
+        password: String,
+        nombre: String,
+        pais: String,
+        documento: String
+    ): AuthResponse = withContext(Dispatchers.IO) {
+        try {
+            val url = URL("$BASE_URL/api/auth/register")
+            val connection = url.openConnection() as HttpURLConnection
+
+            connection.requestMethod = "POST"
+            connection.setRequestProperty("Content-Type", "application/json")
+            connection.doOutput = true
+
+            val body = JSONObject().apply {
+                put("email", email)
+                put("password", password)
+                put("nombre", nombre)
+                put("pais", pais)
+                put("documento", documento)
+            }
+
+            OutputStreamWriter(connection.outputStream).use { writer ->
+                writer.write(body.toString())
+                writer.flush()
+            }
+
+            val responseCode = connection.responseCode
+            val responseBody = if (responseCode in 200..299) {
+                BufferedReader(InputStreamReader(connection.inputStream)).use { it.readText() }
+            } else {
+                BufferedReader(InputStreamReader(connection.errorStream)).use { it.readText() }
+            }
+
+            Log.d(TAG, "Register response code: $responseCode, body: $responseBody")
+
+            val json = JSONObject(responseBody)
+            if (responseCode in 200..299 && json.optBoolean("success", false)) {
+                val user = json.getJSONObject("user")
+                AuthResponse(
+                    success = true,
+                    token = json.getString("token"),
+                    userId = user.optInt("id"),
+                    email = user.optString("email"),
+                    nombre = user.optString("nombre"),
+                    empresaId = user.optInt("empresa_id").takeIf { it > 0 }
+                )
+            } else {
+                AuthResponse(
+                    success = false,
+                    error = json.optString("message").ifEmpty { json.optString("error", "Error al registrar") }
+                )
+            }
+        } catch (e: Exception) {
+            Log.e(TAG, "Error registering user", e)
+            AuthResponse(
+                success = false,
+                error = "Error de conexión: ${e.message ?: e.javaClass.simpleName}"
+            )
+        }
+    }
+
+    suspend fun getUserProfile(token: String): AuthResponse = withContext(Dispatchers.IO) {
+        try {
+            val url = URL("$BASE_URL/api/user/profile")
+            val connection = url.openConnection() as HttpURLConnection
+
+            connection.requestMethod = "GET"
+            connection.setRequestProperty("Authorization", "Bearer $token")
+
+            val responseCode = connection.responseCode
+            val responseBody = if (responseCode in 200..299) {
+                BufferedReader(InputStreamReader(connection.inputStream)).use { it.readText() }
+            } else {
+                BufferedReader(InputStreamReader(connection.errorStream)).use { it.readText() }
+            }
+
+            Log.d(TAG, "Profile response code: $responseCode, body: $responseBody")
+
+            val json = JSONObject(responseBody)
+            if (responseCode in 200..299 && json.optBoolean("success", false)) {
+                val user = json.getJSONObject("user")
+                val empresa = json.optJSONObject("empresa")
+                AuthResponse(
+                    success = true,
+                    userId = user.optInt("id"),
+                    email = user.optString("email"),
+                    nombre = user.optString("nombre"),
+                    empresaId = empresa?.optInt("id")?.takeIf { it > 0 },
+                    paymentStatus = empresa?.optString("payment_status")
+                )
+            } else {
+                AuthResponse(
+                    success = false,
+                    error = json.optString("message").ifEmpty { json.optString("error", "Error al obtener perfil") }
+                )
+            }
+        } catch (e: Exception) {
+            Log.e(TAG, "Error getting profile", e)
+            AuthResponse(
+                success = false,
+                error = "Error de conexión: ${e.message ?: e.javaClass.simpleName}"
+            )
         }
     }
 }

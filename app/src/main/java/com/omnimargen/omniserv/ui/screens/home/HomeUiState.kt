@@ -8,5 +8,7 @@ data class HomeUiState(
     val upcomingServices: List<Service> = emptyList(),
     val totalPendingAmount: Double = 0.0,
     val isLoading: Boolean = false,
-    val error: String? = null
+    val error: String? = null,
+    val isTrial: Boolean = false,
+    val trialDaysRemaining: Int = 0
 )

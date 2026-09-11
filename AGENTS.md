@@ -27,12 +27,13 @@ Parte del ecosistema OmniMargen.
 ```
 app/src/main/java/com/omnimargen/omniserv/
 ├── data/           # Room entities, DAOs, repositories, mappers
+├── di/             # Hilt dependency injection (AppModule)
 ├── domain/         # Models, use cases
 ├── ui/             # Screens, viewmodels, theme, navigation
 ├── license/        # License validation, generation
-├── notification/   # WorkManager, notifications
+├── notification/   # WorkManager, notifications, license expiration
 ├── update/         # Auto-update system
-└── util/           # Helpers (Date, PDF)
+└── util/           # Helpers (PDF, Security)
 ```
 
 ## Comandos de Verificación

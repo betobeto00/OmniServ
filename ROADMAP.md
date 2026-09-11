@@ -181,7 +181,7 @@
 
 ### Integración
 - [x] Grace period 48h offline
-- [ ] Integración con TOG Platform API (pendiente backend)
+- [x] Integración con TOG Platform API (`omniserv` ya incluido en MODULE_IDS de `sign.js`)
 - [ ] Chequeo periódico (WorkManager) - Fase 8
 - [ ] Bloqueo de app si licencia inválida > 48h
 
@@ -273,12 +273,12 @@
 
 | Versión | Fecha | Cambios |
 |---------|-------|---------|
-| v1.0 | Jul 2025 | Versión inicial |
-| v1.1.0 | Ago 2025 | Service types abiertos, notificaciones |
-| v1.1.1 | Sep 2025 | Operator payment summary, invoice numbers |
-| v1.1.2 | Sep 2025 | Fix update checks, trial period |
-| v1.1.3 | Sep 2025 | User-Agent fix, icono OmniServ |
-| v1.1.4 | Sep 2025 | HTTP error handling mejorado |
+| v1.0 | Jul 2026 | Versión inicial |
+| v1.1.0 | Ago 2026 | Service types abiertos, notificaciones |
+| v1.1.1 | Sep 2026 | Operator payment summary, invoice numbers |
+| v1.1.2 | Sep 2026 | Fix update checks, trial period |
+| v1.1.3 | Sep 2026 | User-Agent fix, icono OmniServ |
+| v1.1.4 | Sep 2026 | HTTP error handling mejorado |
 
 ---
 

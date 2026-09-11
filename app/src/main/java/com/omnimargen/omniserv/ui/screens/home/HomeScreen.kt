@@ -22,6 +22,7 @@ import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.DateRange
 import androidx.compose.material.icons.filled.Info
 import androidx.compose.material.icons.filled.Refresh
+import androidx.compose.material.icons.filled.ShoppingCart
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -29,6 +30,7 @@ import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
@@ -42,8 +44,6 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
-import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
@@ -54,7 +54,6 @@ import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.omnimargen.omniserv.R
 import com.omnimargen.omniserv.domain.model.Service
-import com.omnimargen.omniserv.ui.components.BannerTopBar
 import com.omnimargen.omniserv.update.UpdateDialog
 import com.omnimargen.omniserv.update.UpdateViewModel
 import java.text.SimpleDateFormat
@@ -66,6 +65,7 @@ fun HomeScreen(
     onNavigateToServiceForm: () -> Unit = {},
     onNavigateToServiceDetail: (Long) -> Unit = {},
     onNavigateToLegal: () -> Unit = {},
+    onNavigateToActivation: () -> Unit = {},
     viewModel: HomeViewModel = hiltViewModel(),
     updateViewModel: UpdateViewModel = hiltViewModel()
 ) {
@@ -75,22 +75,18 @@ fun HomeScreen(
 
     var showUpdateDialog by remember { mutableStateOf(false) }
 
-    // Descarga terminada → lanzar el instalador de Android automáticamente
     LaunchedEffect(updateUiState.readyToInstall) {
         if (updateUiState.readyToInstall) {
             updateViewModel.installDownloadedApk()
         }
     }
 
-    // Si hay actualización disponible, mostrar el diálogo (una sola vez)
     LaunchedEffect(updateUiState.updateAvailable) {
         if (updateUiState.updateAvailable) {
             showUpdateDialog = true
         }
     }
 
-    // Feedback fiable de un chequeo manual: cada vez que el ViewModel emite un
-    // checkMessage, se muestra como Toast una sola vez y se consume.
     val context = LocalContext.current
     LaunchedEffect(updateUiState.checkMessage) {
         updateUiState.checkMessage?.let { message ->
@@ -121,17 +117,94 @@ fun HomeScreen(
 
     Scaffold(
         topBar = {
-            BannerTopBar(
-                title = "",
-                actions = {
-                    IconButton(onClick = { onNavigateToLegal() }) {
-                        Icon(Icons.Default.Info, contentDescription = "Info Legal")
+            Column {
+                // Blue header image + TopAppBar (icon only, no title)
+                Box(modifier = Modifier.fillMaxWidth()) {
+                    Image(
+                        painter = painterResource(id = R.drawable.header_fondo_azul),
+                        contentDescription = null,
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(100.dp),
+                        contentScale = ContentScale.Crop
+                    )
+                    TopAppBar(
+                        title = {},
+                        actions = {},
+                        colors = TopAppBarDefaults.topAppBarColors(
+                            containerColor = Color.Transparent,
+                            titleContentColor = Color.White,
+                            navigationIconContentColor = Color.White,
+                            actionIconContentColor = Color.White
+                        )
+                    )
+                }
+
+                // Sub-header blanco: nombre de seccion + trial badge + botones
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .background(Color.White)
+                        .padding(horizontal = 16.dp, vertical = 10.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.SpaceBetween
+                ) {
+                    // Iquierda: titulo + badge trial
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
+                        Text(
+                            text = "Inicio",
+                            fontSize = 20.sp,
+                            fontWeight = FontWeight.Bold,
+                            color = MaterialTheme.colorScheme.primary
+                        )
+                        if (uiState.isTrial) {
+                            Card(
+                                colors = CardDefaults.cardColors(
+                                    containerColor = MaterialTheme.colorScheme.tertiaryContainer
+                                ),
+                                shape = RoundedCornerShape(12.dp)
+                            ) {
+                                Row(
+                                    modifier = Modifier.padding(start = 10.dp, end = 4.dp, top = 4.dp, bottom = 4.dp),
+                                    verticalAlignment = Alignment.CenterVertically,
+                                    horizontalArrangement = Arrangement.spacedBy(6.dp)
+                                ) {
+                                    Text(
+                                        text = "Trial ${uiState.trialDaysRemaining}d",
+                                        style = MaterialTheme.typography.labelSmall,
+                                        fontWeight = FontWeight.Bold,
+                                        color = MaterialTheme.colorScheme.onTertiaryContainer
+                                    )
+                                    IconButton(
+                                        onClick = onNavigateToActivation,
+                                        modifier = Modifier.size(24.dp)
+                                    ) {
+                                        Icon(
+                                            imageVector = Icons.Default.ShoppingCart,
+                                            contentDescription = "Comprar licencia",
+                                            modifier = Modifier.size(16.dp),
+                                            tint = MaterialTheme.colorScheme.primary
+                                        )
+                                    }
+                                }
+                            }
+                        }
                     }
-                    IconButton(onClick = { updateViewModel.checkForUpdate(notifyResult = true) }) {
-                        Icon(Icons.Default.Refresh, contentDescription = "Buscar actualizaciones")
+
+                    // Derecha: botones
+                    Row(horizontalArrangement = Arrangement.spacedBy(0.dp)) {
+                        IconButton(onClick = { onNavigateToLegal() }) {
+                            Icon(Icons.Default.Info, contentDescription = "Info Legal")
+                        }
+                        IconButton(onClick = { updateViewModel.checkForUpdate(notifyResult = true) }) {
+                            Icon(Icons.Default.Refresh, contentDescription = "Buscar actualizaciones")
+                        }
                     }
                 }
-            )
+            }
         },
         floatingActionButton = {
             FloatingActionButton(

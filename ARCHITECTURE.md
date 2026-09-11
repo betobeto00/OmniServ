@@ -85,12 +85,14 @@ data class ServiceEntity(
     @PrimaryKey(autoGenerate = true)
     val id: Long = 0,
     val clienteId: Long,
+    val clienteTelefono: String = "",
     val serviceTypeId: Long? = null,
     val tipoServicio: String,
     val fechaServicio: Long,
     val monto: Double,
     val estado: String = "PENDIENTE",
     val notas: String = "",
+    val numeroFactura: String? = null,
     val fechaCreacion: Long
 )
 ```
@@ -581,14 +583,17 @@ Rutas:
 - `services` - Lista de servicios
 - `services/new` - Crear servicio
 - `services/{id}/edit` - Editar servicio
+- `service_detail/{serviceId}` - Vista detallada del servicio (ServiceDetailScreen)
 - `operators` - Lista de operarios
 - `operators/new` - Crear operario
 - `operators/{id}/edit` - Editar operario
+- `operator_detail/{operatorId}` - Vista detallada del operario (OperatorDetailScreen)
 - `service-types` - Lista de tipos de servicio
 - `service-types/new` - Crear tipo
 - `service-types/{id}/edit` - Editar tipo
 - `history` - Historial de servicios completados
 - `activation` - Activación de licencia
+- `legal` - Pantalla de información legal
 
 ---
 

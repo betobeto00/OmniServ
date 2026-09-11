@@ -50,9 +50,13 @@ class MainActivity : ComponentActivity() {
                             OmniServNavGraph()
                         }
                         is LicenseStatus.TrialPeriod -> {
-                            // En período de prueba (persistido), acceso directo al
-                            // dashboard: ya no se vuelve a pedir registro.
-                            OmniServNavGraph()
+                            // Trial activo: mostrar ActivationScreen para que el
+                            // usuario vea el estado del trial y pueda registrarse/pagar.
+                            ActivationScreen(
+                                onActivationSuccess = {
+                                    licenseStatus = LicenseStatus.Valid
+                                }
+                            )
                         }
                         else -> {
                             // Sin licencia o expirada, mostrar pantalla de activación

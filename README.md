@@ -172,7 +172,8 @@ app/src/main/java/com/omnimargen/omniserv/
 ├── notification/
 │   ├── NotificationHelper.kt
 │   ├── NotificationScheduler.kt
-│   └── ReminderWorker.kt
+│   ├── ReminderWorker.kt
+│   └── LicenseExpirationWorker.kt
 ├── ui/
 │   ├── navigation/
 │   │   └── NavGraph.kt
@@ -187,11 +188,15 @@ app/src/main/java/com/omnimargen/omniserv/
 │   │   │   ├── ClientUiState.kt
 │   │   │   └── ClientViewModel.kt
 │   │   ├── operators/
+│   │   │   ├── OperatorDetailScreen.kt
+│   │   │   ├── OperatorDetailUiState.kt
+│   │   │   ├── OperatorDetailViewModel.kt
 │   │   │   ├── OperatorFormScreen.kt
 │   │   │   ├── OperatorListScreen.kt
 │   │   │   ├── OperatorUiState.kt
 │   │   │   └── OperatorViewModel.kt
 │   │   ├── services/
+│   │   │   ├── ServiceDetailScreen.kt
 │   │   │   ├── ServiceFormScreen.kt
 │   │   │   ├── ServiceListScreen.kt
 │   │   │   ├── ServiceUiState.kt
@@ -205,10 +210,12 @@ app/src/main/java/com/omnimargen/omniserv/
 │   │   │   ├── HistoryScreen.kt
 │   │   │   ├── HistoryUiState.kt
 │   │   │   └── HistoryViewModel.kt
-│   │   └── home/
-│   │       ├── HomeScreen.kt
-│   │       ├── HomeUiState.kt
-│   │       └── HomeViewModel.kt
+│   │   ├── home/
+│   │   │   ├── HomeScreen.kt
+│   │   │   ├── HomeUiState.kt
+│   │   │   └── HomeViewModel.kt
+│   │   └── splash/
+│   │       └── SplashScreen.kt
 │   └── theme/
 │       ├── Color.kt
 │       └── Theme.kt
@@ -216,10 +223,11 @@ app/src/main/java/com/omnimargen/omniserv/
 │   ├── UpdateChecker.kt
 │   ├── UpdateDialog.kt
 │   ├── UpdateInstaller.kt
+│   ├── UpdateUiState.kt
 │   └── UpdateViewModel.kt
 ├── util/
-│   ├── DateUtils.kt
-│   └── PdfHelper.kt
+│   ├── PdfHelper.kt
+│   └── SecurityUtils.kt
 └── OmniservApp.kt
 ```
 

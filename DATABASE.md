@@ -133,6 +133,8 @@ Licencia de activación de la app. Solo un registro por dispositivo.
 
 Crea las 6 tablas con las siguientes FOREIGN KEYs:
 
+> **Nota:** La versión actual de la DB es **3** (con migraciones MIGRATION_1_2 y MIGRATION_2_3 en `AppDatabase.kt`).
+
 ```sql
 -- clients
 CREATE TABLE clients (
@@ -165,12 +167,14 @@ CREATE TABLE operators (
 CREATE TABLE services (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     clienteId INTEGER NOT NULL REFERENCES clients(id) ON DELETE CASCADE,
+    clienteTelefono TEXT DEFAULT '',
     serviceTypeId INTEGER REFERENCES service_types(id) ON DELETE SET NULL,
     tipoServicio TEXT NOT NULL,
     fechaServicio INTEGER NOT NULL,
     monto REAL NOT NULL,
     estado TEXT NOT NULL DEFAULT 'PENDIENTE',
     notas TEXT DEFAULT '',
+    numeroFactura TEXT,
     fechaCreacion INTEGER NOT NULL
 );
 
@@ -195,7 +199,12 @@ CREATE TABLE license (
 );
 ```
 
-### Futuras migraciones
+### Migraciones implementadas
+
+- **v1 → v2** (`MIGRATION_1_2`): ver `AppDatabase.kt`
+- **v2 → v3** (`MIGRATION_2_3`): ver `AppDatabase.kt`
+
+### Reglas para futuras migraciones
 
 - Agregar columnas según necesidad
 - Nunca borrar datos existentes
