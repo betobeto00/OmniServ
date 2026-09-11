@@ -113,7 +113,7 @@ private fun formatFileSize(bytes: Long): String {
     val kb = bytes / 1024
     val mb = kb / 1024
     return if (mb > 1) {
-        "${String.format("%.1f", mb)} MB"
+        "${String.format("%.1f", mb.toDouble())} MB"
     } else {
         "${kb} KB"
     }
