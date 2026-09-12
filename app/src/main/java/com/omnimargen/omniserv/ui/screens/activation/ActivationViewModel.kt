@@ -87,18 +87,13 @@ class ActivationViewModel @Inject constructor(
         viewModelScope.launch {
             _uiState.update { it.copy(isLoading = true, error = null) }
 
-            // Intentar login con password vacio para detectar si el email existe
-            // (el servidor retorna "Credenciales incorrectas" si no existe o si la clave es wrong)
-            // Mejor: hacer un registro rapido y si falla con "email already taken" → login
-            // O simplemente asumir que si el usuario tiene cuenta, ingresa clave.
-            // Flujo simplificado: siempre preguntar clave, despues decidir.
+            // Verificar si el email ya esta registrado en el servidor
+            val userExists = togPlatformApi.checkEmailExists(email)
 
-            // Simulacion rapida: intentar login con string vacio
-            val loginResult = togPlatformApi.loginUser(email, "__check__")
             _uiState.update {
                 it.copy(
                     isLoading = false,
-                    isLoginMode = false, // Por defecto asumimos registro
+                    isLoginMode = userExists,
                     authStep = AuthStep.PASSWORD
                 )
             }

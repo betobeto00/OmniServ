@@ -243,6 +243,19 @@ class TogPlatformApi @Inject constructor() {
         }
     }
 
+    suspend fun checkEmailExists(email: String): Boolean = withContext(Dispatchers.IO) {
+        try {
+            val body = JSONObject().apply {
+                put("email", email)
+            }
+            val json = postJson("$BASE_URL/api/auth/check-email", body)
+            json.optBoolean("exists", false)
+        } catch (e: Exception) {
+            if (BuildConfig.DEBUG) android.util.Log.w(TAG, "Error checking email: ${e.message}")
+            false
+        }
+    }
+
     suspend fun loginUser(email: String, password: String): AuthResponse = withContext(Dispatchers.IO) {
         try {
             val body = JSONObject().apply {
