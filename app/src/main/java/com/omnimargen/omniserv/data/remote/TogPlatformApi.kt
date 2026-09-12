@@ -45,7 +45,7 @@ class TogPlatformApi @Inject constructor() {
             val certificatePinner = okhttp3.CertificatePinner.Builder()
                 .add(
                     "tog-platform-production.up.railway.app",
-                    "sha256/AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=",
+                    "sha256/ErIMn03cxhS+PK7UKUcSOY5pqegEhCn8Xvw4k3LqAnw=",
                 )
                 .build()
             builder.certificatePinner(certificatePinner)
