@@ -380,6 +380,29 @@ fun AuthStep(
                 Spacer(modifier = Modifier.height(16.dp))
 
                 OutlinedTextField(
+                    value = uiState.email,
+                    onValueChange = { viewModel.updateEmail(it) },
+                    modifier = Modifier.fillMaxWidth(),
+                    label = { Text("Email") },
+                    singleLine = true,
+                    enabled = !uiState.isLoading
+                )
+
+                Spacer(modifier = Modifier.height(12.dp))
+
+                OutlinedTextField(
+                    value = uiState.password,
+                    onValueChange = { viewModel.updatePassword(it) },
+                    modifier = Modifier.fillMaxWidth(),
+                    label = { Text("Clave") },
+                    singleLine = true,
+                    visualTransformation = PasswordVisualTransformation(),
+                    enabled = !uiState.isLoading
+                )
+
+                Spacer(modifier = Modifier.height(12.dp))
+
+                OutlinedTextField(
                     value = uiState.nombre,
                     onValueChange = { viewModel.updateNombre(it) },
                     modifier = Modifier.fillMaxWidth(),
@@ -437,7 +460,7 @@ fun AuthStep(
                 Button(
                     onClick = { viewModel.submitPassword() },
                     modifier = Modifier.fillMaxWidth(),
-                    enabled = !uiState.isLoading && uiState.nombre.isNotBlank() && uiState.pais.isNotBlank()
+                    enabled = !uiState.isLoading && uiState.nombre.isNotBlank() && uiState.pais.isNotBlank() && uiState.password.length >= 6
                 ) {
                     if (uiState.isLoading) {
                         CircularProgressIndicator(

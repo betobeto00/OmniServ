@@ -40,7 +40,30 @@ class ActivationViewModel @Inject constructor(
     }
 
     init {
-        checkLicenseStatus()
+        // Si hay token guardado, saltar al paso de pago
+        val savedToken = licenseRepository.getAuthToken()
+        val savedEmail = licenseRepository.getUserEmail()
+        if (savedToken != null && savedEmail != null) {
+            _uiState.update {
+                it.copy(
+                    email = savedEmail,
+                    authToken = savedToken,
+                    isLoginMode = true,
+                    currentStep = 2,
+                    paymentPending = true
+                )
+            }
+            // Verificar empresa existente
+            viewModelScope.launch {
+                val empresaId = togPlatformApi.getEmpresaIdByEmail(savedEmail)
+                if (empresaId != null) {
+                    _uiState.update { it.copy(empresaId = empresaId, isRegistered = true) }
+                    startPaymentPolling(empresaId)
+                }
+            }
+        } else {
+            checkLicenseStatus()
+        }
     }
 
     private fun checkLicenseStatus() {
@@ -94,7 +117,7 @@ class ActivationViewModel @Inject constructor(
                 it.copy(
                     isLoading = false,
                     isLoginMode = userExists,
-                    authStep = AuthStep.PASSWORD
+                    authStep = if (userExists) AuthStep.PASSWORD else AuthStep.REGISTER
                 )
             }
         }
@@ -166,6 +189,12 @@ class ActivationViewModel @Inject constructor(
 
     private suspend fun handleAuthSuccess(result: TogPlatformApi.AuthResponse) {
         val empresaId = result.empresaId?.toString()
+
+        // Guardar token y email para "recordar login"
+        if (result.token != null) {
+            licenseRepository.saveAuthToken(result.token)
+            licenseRepository.saveUserEmail(_uiState.value.email.trim().lowercase())
+        }
 
         _uiState.update {
             it.copy(

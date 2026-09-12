@@ -160,6 +160,11 @@ fun HomeScreen(
                             fontWeight = FontWeight.Bold,
                             color = MaterialTheme.colorScheme.primary
                         )
+                        Text(
+                            text = "v${com.omnimargen.omniserv.BuildConfig.VERSION_NAME}",
+                            fontSize = 12.sp,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
                         if (uiState.isTrial) {
                             Card(
                                 colors = CardDefaults.cardColors(

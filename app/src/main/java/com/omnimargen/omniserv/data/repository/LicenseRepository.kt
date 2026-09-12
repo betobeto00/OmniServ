@@ -45,7 +45,25 @@ class LicenseRepository @Inject constructor(
     /** 0 = el usuario aún no activó el trial (usa la fecha de instalación). */
     fun getTrialStartTime(): Long = prefs.getLong(PREF_TRIAL_START, 0L)
 
+    fun saveAuthToken(token: String) {
+        prefs.edit().putString(PREF_AUTH_TOKEN, token).apply()
+    }
+
+    fun getAuthToken(): String? = prefs.getString(PREF_AUTH_TOKEN, null)
+
+    fun clearAuthToken() {
+        prefs.edit().remove(PREF_AUTH_TOKEN).apply()
+    }
+
+    fun saveUserEmail(email: String) {
+        prefs.edit().putString(PREF_USER_EMAIL, email).apply()
+    }
+
+    fun getUserEmail(): String? = prefs.getString(PREF_USER_EMAIL, null)
+
     private companion object {
         const val PREF_TRIAL_START = "trial_start_time"
+        const val PREF_AUTH_TOKEN = "auth_token"
+        const val PREF_USER_EMAIL = "user_email"
     }
 }

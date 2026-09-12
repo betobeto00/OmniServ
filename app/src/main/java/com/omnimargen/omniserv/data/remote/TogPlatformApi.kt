@@ -1,6 +1,7 @@
 package com.omnimargen.omniserv.data.remote
 
 import com.omnimargen.omniserv.BuildConfig
+import com.omnimargen.omniserv.data.repository.LicenseRepository
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import okhttp3.MediaType.Companion.toMediaType
@@ -13,7 +14,9 @@ import javax.inject.Inject
 import javax.inject.Singleton
 
 @Singleton
-class TogPlatformApi @Inject constructor() {
+class TogPlatformApi @Inject constructor(
+    private val licenseRepository: LicenseRepository
+) {
 
     companion object {
         private const val TAG = "TogPlatformApi"
@@ -361,6 +364,16 @@ class TogPlatformApi @Inject constructor() {
         } catch (e: Exception) {
             if (BuildConfig.DEBUG) android.util.Log.e(TAG, "Error getting profile: ${e.message}")
             AuthResponse(success = false, error = "Error de conexión")
+        }
+    }
+
+    suspend fun getEmpresaIdByEmail(email: String): String? = withContext(Dispatchers.IO) {
+        try {
+            val token = licenseRepository.getAuthToken() ?: return@withContext null
+            val profile = getUserProfile(token)
+            profile.empresaId?.toString()
+        } catch (e: Exception) {
+            null
         }
     }
 }
